@@ -1,0 +1,158 @@
+# ──────────────────────────────────────────────────────────────
+# Sistema legacy (solo referencia local, NO se comitea)
+# ──────────────────────────────────────────────────────────────
+surp-legacy/
+
+# ──────────────────────────────────────────────────────────────
+# Secretos — NUNCA comitear
+# ──────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# ──────────────────────────────────────────────────────────────
+# Node / pnpm / monorepo
+# ──────────────────────────────────────────────────────────────
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+.turbo/
+.nx/
+dist/
+build/
+out/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ──────────────────────────────────────────────────────────────
+# TypeScript
+# ──────────────────────────────────────────────────────────────
+*.tsbuildinfo
+.tscache/
+
+# ──────────────────────────────────────────────────────────────
+# Testing y coverage
+# ──────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+.vitest/
+playwright-report/
+test-results/
+e2e-results/
+blob-report/
+playwright/.cache/
+
+# ──────────────────────────────────────────────────────────────
+# Next.js / frontend (apps/web)
+# ──────────────────────────────────────────────────────────────
+.next/
+.vercel/
+.nuxt/
+.svelte-kit/
+.cache/
+next-env.d.ts
+.storybook-out/
+storybook-static/
+
+# ──────────────────────────────────────────────────────────────
+# NestJS / backend (apps/api)
+# ──────────────────────────────────────────────────────────────
+apps/api/dist/
+apps/api/build/
+apps/api/.swc/
+
+# ──────────────────────────────────────────────────────────────
+# Drizzle ORM
+# ──────────────────────────────────────────────────────────────
+drizzle/
+!database/drizzle/
+.drizzle/
+
+# ──────────────────────────────────────────────────────────────
+# Base de datos / Docker volúmenes locales
+# ──────────────────────────────────────────────────────────────
+*.sql.bak
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+postgres-data/
+pg-data/
+redis-data/
+azurite-data/
+__azurite_db*__.json
+__blobstorage__/
+__queuestorage__/
+
+# ──────────────────────────────────────────────────────────────
+# Azure / despliegue
+# ──────────────────────────────────────────────────────────────
+.azure/
+.deployment
+local.settings.json
+
+# ──────────────────────────────────────────────────────────────
+# Python (scripts de migración legacy → SURP 2.0)
+# ──────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# ──────────────────────────────────────────────────────────────
+# Editores / IDEs
+# ──────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.ionide/
+
+# ──────────────────────────────────────────────────────────────
+# Sistema operativo
+# ──────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.local
+
+# ──────────────────────────────────────────────────────────────
+# Claude Code (local, no compartido)
+# ──────────────────────────────────────────────────────────────
+.claude/local/
+.claude/settings.local.json
+
+# ──────────────────────────────────────────────────────────────
+# Archivos temporales / evidencias locales
+# ──────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+uploads/
+evidencias/
+evidence/
