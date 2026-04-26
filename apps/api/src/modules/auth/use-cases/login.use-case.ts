@@ -46,6 +46,8 @@ export interface PublicUserSnapshot {
   email: string;
   displayName: string;
   organizationId: string;
+  organizationName: string;
+  organizationType: 'principal' | 'security_provider' | 'api_consumer';
   permissions: readonly string[];
   roles: readonly string[];
 }
@@ -225,6 +227,8 @@ function toPublicSnapshot(u: UserWithPermissions): PublicUserSnapshot {
     email: u.email,
     displayName: u.displayName,
     organizationId: u.organizationId.toString(),
+    organizationName: u.organizationName,
+    organizationType: u.organizationType,
     permissions: u.permissions,
     roles: u.roles,
   };

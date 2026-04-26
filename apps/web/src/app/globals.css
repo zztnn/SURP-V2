@@ -52,6 +52,11 @@
 
 /* ========== DESIGN TOKEN VALUES — from STYLE-SPECS.md Section 1.1 ========== */
 
+/* El zoom global lo aplica `PreferencesProvider` directo en
+ * `<html>.style.fontSize` (no via CSS var) porque la resolución de
+ * calc()+var() puede llegar tarde con Turbopack en dev. Ver
+ * `providers/preferences-provider.tsx`. */
+
 :root {
   /* === Core surface colors === */
   --background: 214 32% 95%; /* #EDF2F7 — bg.primary */

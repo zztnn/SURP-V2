@@ -68,6 +68,8 @@ export interface LoginAttemptRecord {
   attemptedAt: Date;
 }
 
+export type OrganizationType = 'principal' | 'security_provider' | 'api_consumer';
+
 /**
  * Proyección con permisos efectivos pre-calculados (UNION sobre roles).
  * Se entrega al guard / al use case `me` sin necesidad de joins extra
@@ -77,6 +79,10 @@ export interface UserWithPermissions {
   id: bigint;
   externalId: string;
   organizationId: bigint;
+  /** Razón social / nombre legible (`organizations.name`). */
+  organizationName: string;
+  /** Tipo de organización — gobierna visibilidad y rol-scope (ADR-B-003). */
+  organizationType: OrganizationType;
   email: string;
   displayName: string;
   active: boolean;

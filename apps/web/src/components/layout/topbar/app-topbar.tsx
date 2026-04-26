@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useFullscreenChange } from '@/hooks/use-fullscreen-change';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar-store';
+import { useZoomStore } from '@/stores/zoom-store';
 
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { ThemeToggle } from './theme-toggle';
@@ -50,6 +51,7 @@ function unlockEscapeKey(): void {
 export function AppTopbar(): React.ReactElement {
   const isExpanded = useSidebarStore((s) => s.isExpanded);
   const setExpanded = useSidebarStore((s) => s.setExpanded);
+  const zoomTopbarVisible = useZoomStore((s) => s.topbarVisible);
   const headerRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -108,7 +110,7 @@ export function AppTopbar(): React.ReactElement {
 
         {/* Desktop controls */}
         <div className="hidden items-center gap-1 lg:flex">
-          <ZoomControl />
+          {zoomTopbarVisible ? <ZoomControl /> : null}
           <ThemeToggle />
           <Button
             variant="ghost"

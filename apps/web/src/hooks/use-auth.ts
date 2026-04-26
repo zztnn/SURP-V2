@@ -11,12 +11,16 @@ import {
 import { apiClient, ApiError, refreshAccessToken } from '@/lib/api-client';
 import { clearAccessToken, getAccessToken, setAccessToken } from '@/lib/auth-token-store';
 
+export type OrganizationType = 'principal' | 'security_provider' | 'api_consumer';
+
 export interface AuthUser {
   id: string;
   externalId: string;
   email: string;
   displayName: string;
   organizationId: string;
+  organizationName: string;
+  organizationType: OrganizationType;
   active: boolean;
   mustResetPassword: boolean;
   mfaRequired: boolean;
@@ -34,6 +38,8 @@ interface LoginResponse {
     email: string;
     displayName: string;
     organizationId: string;
+    organizationName: string;
+    organizationType: OrganizationType;
     permissions: readonly string[];
     roles: readonly string[];
   };
@@ -117,6 +123,8 @@ export function useLogin(): UseMutationResult<LoginResponse, Error, LoginInput> 
         email: result.user.email,
         displayName: result.user.displayName,
         organizationId: result.user.organizationId,
+        organizationName: result.user.organizationName,
+        organizationType: result.user.organizationType,
         permissions: result.user.permissions,
         roles: result.user.roles,
         active: true,

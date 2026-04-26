@@ -138,7 +138,7 @@ export function UserMenu(): ReactElement | null {
               organizationId={user.organizationId}
             />
             <nav className="mt-2 flex flex-col gap-0.5">
-              <Link href="/me" className={menuItemClass}>
+              <Link href="/settings/perfil" className={menuItemClass}>
                 <User className="h-4 w-4" />
                 Mi cuenta
               </Link>
@@ -185,7 +185,7 @@ export function UserMenu(): ReactElement | null {
           />
         </div>
         <DropdownMenuItem asChild className="rounded-md text-sm text-foreground hover:bg-accent">
-          <Link href="/me">
+          <Link href="/settings/perfil">
             <User className="mr-2 h-4 w-4" />
             Mi cuenta
           </Link>

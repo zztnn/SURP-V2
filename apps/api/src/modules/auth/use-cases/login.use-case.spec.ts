@@ -65,6 +65,8 @@ const FULL_USER: UserWithPermissions = {
   id: 1n,
   externalId: 'ext-uuid',
   organizationId: 10n,
+  organizationName: 'Forestal Arauco S.A.',
+  organizationType: 'principal',
   email: 'jquiero@softe.cl',
   displayName: 'Juan Quiero',
   active: true,

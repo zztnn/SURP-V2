@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { RequestContext } from '../../../common';
 import {
   USER_REPOSITORY,
+  type OrganizationType,
   type UserRepositoryPort,
   type UserWithPermissions,
 } from '../ports/user.repository.port';
@@ -12,6 +13,8 @@ export interface CurrentUserResult {
   email: string;
   displayName: string;
   organizationId: string;
+  organizationName: string;
+  organizationType: OrganizationType;
   active: boolean;
   mustResetPassword: boolean;
   mfaRequired: boolean;
@@ -58,6 +61,8 @@ function toResult(u: UserWithPermissions): CurrentUserResult {
     email: u.email,
     displayName: u.displayName,
     organizationId: u.organizationId.toString(),
+    organizationName: u.organizationName,
+    organizationType: u.organizationType,
     active: u.active,
     mustResetPassword: u.mustResetPassword,
     mfaRequired: u.mfaRequired,

@@ -6,6 +6,7 @@ import { AuthenticatedUser } from '../domain/authenticated-user';
 import type { LoginAttempt, LoginOutcome } from '../domain/login-attempt';
 import type {
   LoginAttemptRecord,
+  OrganizationType,
   UserRepositoryPort,
   UserWithPermissions,
 } from '../ports/user.repository.port';
@@ -53,20 +54,23 @@ export class KyselyUserRepository implements UserRepositoryPort {
 
   async findByIdWithPermissions(userId: bigint): Promise<UserWithPermissions | null> {
     const userRow = await this.db
-      .selectFrom('users')
+      .selectFrom('users as u')
+      .innerJoin('organizations as o', 'o.id', 'u.organizationId')
       .select([
-        'id',
-        'externalId',
-        'organizationId',
-        'email',
-        'displayName',
-        'active',
-        'mustResetPassword',
-        'mfaRequired',
-        'mfaEnrolled',
+        'u.id',
+        'u.externalId',
+        'u.organizationId',
+        'u.email',
+        'u.displayName',
+        'u.active',
+        'u.mustResetPassword',
+        'u.mfaRequired',
+        'u.mfaEnrolled',
+        'o.name as organizationName',
+        'o.type as organizationType',
       ])
-      .where('id', '=', userId.toString())
-      .where('deletedAt', 'is', null)
+      .where('u.id', '=', userId.toString())
+      .where('u.deletedAt', 'is', null)
       .executeTakeFirst();
 
     if (!userRow) return null;
@@ -97,6 +101,8 @@ export class KyselyUserRepository implements UserRepositoryPort {
       id: BigInt(userRow.id),
       externalId: userRow.externalId,
       organizationId: BigInt(userRow.organizationId),
+      organizationName: userRow.organizationName,
+      organizationType: userRow.organizationType as OrganizationType,
       email: userRow.email,
       displayName: userRow.displayName,
       active: userRow.active,

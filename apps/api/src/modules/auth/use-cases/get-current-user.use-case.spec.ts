@@ -6,6 +6,8 @@ import { GetCurrentUserUseCase } from './get-current-user.use-case';
 
 const NOW = new Date('2026-04-25T12:00:00Z');
 const FULL_USER: UserWithPermissions = {
+  organizationName: 'Forestal Arauco S.A.',
+  organizationType: 'principal',
   id: 1n,
   externalId: 'ext',
   organizationId: 10n,

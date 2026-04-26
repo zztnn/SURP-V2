@@ -171,6 +171,12 @@ export const MENU_ROOT: readonly MenuItemDef[] = [
       },
     ],
   },
+  {
+    code: 'settings',
+    label: 'Configuración',
+    icon: 'Settings',
+    href: '/settings',
+  },
 ];
 
 /**
