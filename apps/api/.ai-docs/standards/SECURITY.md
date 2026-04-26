@@ -3,6 +3,7 @@
 > Seguridad del backend SURP. Maneja datos sensibles: ubicaciones de incidentes, datos de imputados, RUTs, evidencias judiciales, causas, bloqueos. Lectura obligatoria antes de exponer cualquier endpoint.
 
 Relacionado:
+
 - `AUTHORIZATION.md` — Modelo multi-organización + RBAC dinámico
 - ADR-B-009 — Auditoría CRUD + lecturas sensibles
 - `memory/KNOWN-PITFALLS.md` — Errores heredados del legacy que NO se repiten
@@ -13,19 +14,19 @@ Relacionado:
 
 El legacy SURP (ASP.NET Core 3.1) tiene vulnerabilidades graves. SURP 2.0 las corrige estructuralmente. **Estas son prohibiciones explícitas — no se relajan:**
 
-| Vulnerabilidad legacy | Evidencia | Mitigación SURP 2.0 |
-|-----------------------|-----------|---------------------|
-| Connection strings hardcodeados con password en texto plano | `SACL.EF/SACLContext.cs:81-86`, `appsettings.json` | Azure Key Vault para todos los secretos. `.env` local nunca se comitea. |
-| Password "encriptado" con clave simétrica fija | GUID `a392ef91-...` hardcodeado en múltiples archivos | `argon2id` (password hashing irreversible). Nunca hay "desencriptar" en el código. |
-| Controllers sin `[Authorize]` | `MaatController` accesible sin login | Guards globales (`JwtAuthGuard` + `PermissionGuard`) por defecto. Endpoints públicos requieren `@Public()` explícito. |
-| Autorización solo en menú | `Views/Shared/Components/SideMenu/Default.cshtml` | `PermissionGuard` en cada endpoint. El menú frontend es solo UX. |
-| Filtros de visibilidad comentados "temporal" | `IncidentesController` tiene el filtro de empresa comentado | No se permite código comentado en main. Si hay un bug, se arregla o se revierte. |
-| API con credenciales de usuario real en headers | `usr`/`pwd` en `SURP.API/Controllers/*` | API keys por `api_consumer`, rotables, auditadas, rate-limited. |
-| Endpoint que devuelve lista completa sin filtrar | `/araucaria/incidentes` devuelve todos los incidentes | Prohibido. Toda lista va paginada + filtrada por scope del usuario. Listas completas solo para `principal` con paginación estricta. |
-| Tabla `Permiso(Perfil, Controlador)` como código muerto | Existe pero no se consulta | RBAC dinámico real: `role_permissions` se consulta en cada autenticación. |
-| Sin auditoría CRUD | Ninguna tabla de audit para incidentes/denuncias/causas | Trigger PostgreSQL + `AuditInterceptor` + decorador de lectura sensible. |
-| Sin rate limit en API | - | `@nestjs/throttler` global + límites custom por API key. |
-| Sin HSTS ni helmet | - | `helmet` obligatorio con HSTS 1 año, CSP estricto. |
+| Vulnerabilidad legacy                                       | Evidencia                                                   | Mitigación SURP 2.0                                                                                                                 |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Connection strings hardcodeados con password en texto plano | `SACL.EF/SACLContext.cs:81-86`, `appsettings.json`          | Azure Key Vault para todos los secretos. `.env` local nunca se comitea.                                                             |
+| Password "encriptado" con clave simétrica fija              | GUID `a392ef91-...` hardcodeado en múltiples archivos       | `argon2id` (password hashing irreversible). Nunca hay "desencriptar" en el código.                                                  |
+| Controllers sin `[Authorize]`                               | `MaatController` accesible sin login                        | Guards globales (`JwtAuthGuard` + `PermissionGuard`) por defecto. Endpoints públicos requieren `@Public()` explícito.               |
+| Autorización solo en menú                                   | `Views/Shared/Components/SideMenu/Default.cshtml`           | `PermissionGuard` en cada endpoint. El menú frontend es solo UX.                                                                    |
+| Filtros de visibilidad comentados "temporal"                | `IncidentesController` tiene el filtro de empresa comentado | No se permite código comentado en main. Si hay un bug, se arregla o se revierte.                                                    |
+| API con credenciales de usuario real en headers             | `usr`/`pwd` en `SURP.API/Controllers/*`                     | API keys por `api_consumer`, rotables, auditadas, rate-limited.                                                                     |
+| Endpoint que devuelve lista completa sin filtrar            | `/araucaria/incidentes` devuelve todos los incidentes       | Prohibido. Toda lista va paginada + filtrada por scope del usuario. Listas completas solo para `principal` con paginación estricta. |
+| Tabla `Permiso(Perfil, Controlador)` como código muerto     | Existe pero no se consulta                                  | RBAC dinámico real: `role_permissions` se consulta en cada autenticación.                                                           |
+| Sin auditoría CRUD                                          | Ninguna tabla de audit para incidentes/denuncias/causas     | Trigger PostgreSQL + `AuditInterceptor` + decorador de lectura sensible.                                                            |
+| Sin rate limit en API                                       | -                                                           | `@nestjs/throttler` global + límites custom por API key.                                                                            |
+| Sin HSTS ni helmet                                          | -                                                           | `helmet` obligatorio con HSTS 1 año, CSP estricto.                                                                                  |
 
 Si ves en un PR algún indicio de re-introducir estas fallas: **bloquear y escalar**.
 
@@ -127,15 +128,15 @@ Detalle completo en `AUTHORIZATION.md`. Resumen:
 
 ### 5.1 Campos sensibles que requieren cuidado especial
 
-| Dato | Regla |
-|------|-------|
-| RUT de imputados, testigos, víctimas | Permiso `persons.imputados.read` (sensible). No loguear. No exponer en URL path. |
-| Coordenadas de incidentes | Solo usuarios con `incidents.incidents.read` las reciben. No loguear coordenadas en Application Insights. |
+| Dato                                      | Regla                                                                                                                              |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| RUT de imputados, testigos, víctimas      | Permiso `persons.imputados.read` (sensible). No loguear. No exponer en URL path.                                                   |
+| Coordenadas de incidentes                 | Solo usuarios con `incidents.incidents.read` las reciben. No loguear coordenadas en Application Insights.                          |
 | Evidencias judiciales (fotos/videos/docs) | Permiso `incidents.evidence.download`. Toda descarga se audita como lectura sensible con `entity_external_id` y `reason` opcional. |
-| Datos de causas judiciales | Permiso `cases.cases.read` (sensible). Solo usuarios `principal` con rol lawyer/admin. |
-| MAAT records | Permiso `maat.records.read` / `maat.records.manage`. Solo asignado a personal autorizado. |
-| Password hash | Nunca se devuelve en ninguna respuesta. Campo excluido explícitamente en el mapper. |
-| Refresh tokens | Nunca en respuesta JSON. Solo cookie httpOnly. |
+| Datos de causas judiciales                | Permiso `cases.cases.read` (sensible). Solo usuarios `principal` con rol lawyer/admin.                                             |
+| MAAT records                              | Permiso `maat.records.read` / `maat.records.manage`. Solo asignado a personal autorizado.                                          |
+| Password hash                             | Nunca se devuelve en ninguna respuesta. Campo excluido explícitamente en el mapper.                                                |
+| Refresh tokens                            | Nunca en respuesta JSON. Solo cookie httpOnly.                                                                                     |
 
 ### 5.2 Auditoría de lecturas sensibles
 
@@ -171,24 +172,26 @@ Ver ADR-B-009. Toda invocación a un endpoint con `@RequirePermission(...)` cuyo
 ## 7. Headers HTTP (Helmet)
 
 ```typescript
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],  // tailwind inline ok
-      imgSrc: ["'self'", 'data:', 'https://*.blob.core.windows.net'],  // fotos de evidencia
-      connectSrc: ["'self'", 'https://dc.services.visualstudio.com'],  // App Insights
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // tailwind inline ok
+        imgSrc: ["'self'", 'data:', 'https://*.blob.core.windows.net'], // fotos de evidencia
+        connectSrc: ["'self'", 'https://dc.services.visualstudio.com'], // App Insights
+      },
     },
-  },
-  crossOriginEmbedderPolicy: true,
-  crossOriginOpenerPolicy: { policy: 'same-origin' },
-  crossOriginResourcePolicy: { policy: 'same-site' },
-  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  frameguard: { action: 'deny' },
-  noSniff: true,
-}));
+    crossOriginEmbedderPolicy: true,
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+  }),
+);
 ```
 
 ---
@@ -214,7 +217,7 @@ API keys llevan un throttle separado (sección 3.3) indexado por `organization_i
 - RUT: decorador `@IsRut()` (valida módulo 11) en toda columna de RUT.
 - Coordenadas: `@IsLatitude()`, `@IsLongitude()` + validación de rango razonable para Chile (`lat: -56 to -17`, `lng: -76 to -66`).
 - Uploads: validar mime type + magic bytes (no confiar en `content-type` del cliente).
-- **Nunca** interpolar strings de usuario en queries SQL — Drizzle parametriza automáticamente.
+- **Nunca** interpolar strings de usuario en queries SQL. Kysely parametriza automáticamente cuando usás el query builder (`.where('col', '=', value)`) y la plantilla `sql\`... ${value} ...\``— los valores van como bind parameters. **Nunca** construir queries con concatenación de strings ni con`sql.raw(userInput)`.
 
 ---
 

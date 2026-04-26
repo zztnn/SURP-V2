@@ -29,7 +29,7 @@ Cuando un módulo A crece y necesita Clean Architecture:
 1. Crear carpeta `domain/` con la clase de dominio pura.
 2. Crear carpeta `ports/` con la interface del repository.
 3. Mover la lógica de negocio del service a use-cases.
-4. Crear `infrastructure/` con la implementación Drizzle del port.
+4. Crear `infrastructure/` con la implementación Kysely del port (archivo `kysely-{entity}.repository.ts`).
 5. Crear `infrastructure/{entity}.mapper.ts` para row ↔ dominio.
 6. Actualizar el `module.ts` con el wiring de DI.
 7. Eliminar el `service.ts` monolítico original.

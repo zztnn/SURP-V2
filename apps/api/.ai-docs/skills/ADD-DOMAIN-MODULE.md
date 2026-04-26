@@ -61,7 +61,7 @@ mkdir -p src/modules/{bc}/{entity}/{domain,ports,use-cases,infrastructure,dto}
 touch src/modules/{bc}/{entity}/domain/{entity}.ts
 touch src/modules/{bc}/{entity}/ports/{entity}.repository.port.ts
 touch src/modules/{bc}/{entity}/use-cases/create-{entity}.use-case.ts
-touch src/modules/{bc}/{entity}/infrastructure/drizzle-{entity}.repository.ts
+touch src/modules/{bc}/{entity}/infrastructure/kysely-{entity}.repository.ts
 touch src/modules/{bc}/{entity}/infrastructure/{entity}.mapper.ts
 touch src/modules/{bc}/{entity}/dto/create-{entity}.dto.ts
 touch src/modules/{bc}/{entity}/{entity}.controller.ts

@@ -46,6 +46,7 @@
 **Qué pasa:** El frontend valida módulo 11. Un import batch o una llamada directa a la API pasa RUTs inválidos que quedan guardados.
 
 **Regla:** Validar RUT en tres capas:
+
 1. **Frontend** (Zod refinement + `@/lib/rut.ts`).
 2. **Backend** (decorator `@IsRut()` en DTOs).
 3. **Imports CSV/batch**: rechazar fila con RUT inválido.
@@ -54,9 +55,9 @@
 
 ## PITFALL-B-006 — Transacciones sin cerrar en caso de excepción
 
-**Qué pasa:** `await db.execute(sql\`BEGIN\`)` manual + queries + `COMMIT`. Una excepción deja la connection en BEGIN abierto. El pool se satura.
+**Qué pasa:** `await db.execute(sql\`BEGIN\`)`manual + queries +`COMMIT`. Una excepción deja la connection en BEGIN abierto. El pool se satura.
 
-**Regla:** Usar `db.transaction(async (tx) => {...})` de Drizzle. Hace rollback automático en excepción.
+**Regla:** Usar `db.transaction().execute(async (tx) => {...})` de Kysely. Hace rollback automático en excepción.
 
 ---
 
@@ -128,7 +129,7 @@
 
 **Qué pasa:** `findAll()` retorna registros soft-deleted. El usuario ve personas o vehículos "eliminados" en los dropdowns.
 
-**Regla:** En queries de lista activa, siempre agregar `isNull(table.deletedAt)` en el WHERE. Crear índices parciales que excluyan `deleted_at IS NOT NULL`.
+**Regla:** En queries de lista activa, siempre agregar `.where('deleted_at', 'is', null)` en el query de Kysely. Crear índices parciales en el SQL que excluyan `deleted_at IS NOT NULL` para las queries más frecuentes.
 
 ---
 
@@ -175,6 +176,7 @@
 ## PITFALL-B-020 — Filtros de visibilidad comentados "temporalmente"
 
 **Qué pasa en el legacy:** `IncidentesController` tiene el filtro por empresa **comentado** — un contratista ve incidentes de otras empresas:
+
 ```csharp
 //if (Usuario.Perfil == Perfil.UnidadPatrimonial || ...)
 //{

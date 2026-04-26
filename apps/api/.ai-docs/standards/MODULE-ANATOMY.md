@@ -1,15 +1,16 @@
 # Module Anatomy — SURP 2.0 API (NestJS)
 
 > Cómo se organiza un módulo de dominio en `apps/api/`.
+> Stack: NestJS 11 + Kysely 0.27 (ver `STACK.md` §5 y §6).
 
 ---
 
 ## Dos patterns — elegís según complejidad
 
-| Pattern | Cuándo | Ejemplo |
-|---------|--------|---------|
-| **A — 7-file clásico** | Mantenedor CRUD simple. Pocas reglas de negocio. | `catalog/zones`, `catalog/incident-types`, `catalog/institutions` |
-| **B — Clean Architecture** | Reglas de dominio complejas, acciones no-CRUD, integraciones externas. | `incidents`, `cases`, `persons`, `maat` |
+| Pattern                    | Cuándo                                                                 | Ejemplo                                                           |
+| -------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **A — 7-file clásico**     | Mantenedor CRUD simple. Pocas reglas de negocio.                       | `catalog/zones`, `catalog/incident-types`, `catalog/institutions` |
+| **B — Clean Architecture** | Reglas de dominio complejas, acciones no-CRUD, integraciones externas. | `incidents`, `cases`, `persons`, `maat`                           |
 
 **Regla corta:** ver `skills/CHOOSE-MODULE-PATTERN.md`.
 
@@ -37,17 +38,22 @@ src/modules/catalog/zones/
 
 ## Entity file
 
-```typescript
-import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
-import { zones } from '@/database/schema/catalog';
+Los tipos vienen de los tipos generados por `kysely-codegen` (ver `apps/api/src/database/generated/kysely-types.ts`), envueltos con los helpers `Selectable` / `Insertable` / `Updateable` de Kysely.
 
-export type Zone = InferSelectModel<typeof zones>;
-export type NewZone = InferInsertModel<typeof zones>;
+```typescript
+// entities/zone.entity.ts
+import type { Selectable, Insertable, Updateable } from 'kysely';
+import type { DB } from '@/database/generated/kysely-types';
+
+export type Zone = Selectable<DB['zones']>;
+export type NewZone = Insertable<DB['zones']>;
+export type ZoneUpdate = Updateable<DB['zones']>;
 ```
 
 ## DTO files
 
 ```typescript
+// dto/create-zone.dto.ts
 export class CreateZoneDto {
   @IsString({ message: 'El nombre debe ser texto.' })
   @IsNotEmpty({ message: 'El nombre es requerido.' })
@@ -63,42 +69,80 @@ export class CreateZoneDto {
 }
 ```
 
-Excluir siempre de DTOs: `id`, `external_id` (generados por BD), `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `deleted_at`.
+Excluir siempre de DTOs: `id`, `external_id` (generados por BD), `created_at`, `updated_at`, `created_by_id`, `updated_by_id`, `deleted_at`. Los DTOs usan camelCase; el repositorio hace el mapeo a snake_case que entiende Kysely.
 
 ## Repository file
 
-Solo acceso a datos vía Drizzle. **No lógica de negocio.**
+Solo acceso a datos vía Kysely. **No lógica de negocio.**
 
 ```typescript
+// zones.repository.ts
+import { Inject, Injectable } from '@nestjs/common';
+import { KYSELY, type KyselyDb } from '@/database/database.module';
+import type { Zone, NewZone, ZoneUpdate } from './entities/zone.entity';
+
 @Injectable()
 export class ZonesRepository {
-  constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase<typeof schema>) {}
+  constructor(@Inject(KYSELY) private readonly db: KyselyDb) {}
 
   async findAll(): Promise<Zone[]> {
     return this.db
-      .select()
-      .from(zones)
-      .where(isNull(zones.deletedAt))
-      .orderBy(zones.name);
+      .selectFrom('zones')
+      .selectAll()
+      .where('deleted_at', 'is', null)
+      .orderBy('name', 'asc')
+      .execute();
   }
 
   async findById(id: number): Promise<Zone | null> {
-    const [row] = await this.db
-      .select()
-      .from(zones)
-      .where(and(eq(zones.id, id), isNull(zones.deletedAt)))
-      .limit(1);
+    const row = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    return row ?? null;
+  }
+
+  async findByExternalId(externalId: string): Promise<Zone | null> {
+    const row = await this.db
+      .selectFrom('zones')
+      .selectAll()
+      .where('external_id', '=', externalId)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
     return row ?? null;
   }
 
   async insert(data: NewZone): Promise<Zone> {
-    const [row] = await this.db.insert(zones).values(data).returning();
-    return row;
+    return this.db.insertInto('zones').values(data).returningAll().executeTakeFirstOrThrow();
+  }
+
+  async update(id: number, patch: ZoneUpdate): Promise<Zone> {
+    return this.db
+      .updateTable('zones')
+      .set(patch)
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async softDelete(id: number): Promise<void> {
+    await this.db
+      .updateTable('zones')
+      .set({ deleted_at: new Date() })
+      .where('id', '=', id)
+      .execute();
   }
 }
 ```
 
-NUNCA filtrar por `tenant_id` — no existe en SURP.
+Notas:
+
+- Nombres de columna en `snake_case` (`deleted_at`, `external_id`) — coincide con el schema SQL, sin plugin de camelCase (ver `POSTGIS-PATTERNS.md`).
+- `selectAll()` está OK en Pattern A porque las tablas son chicas y sin geometrías grandes. En Pattern B o tablas con `geometry`, listar columnas explícitas.
+- `NUNCA` filtrar por `tenant_id` — no existe en SURP (ver ADR-B-003 para el modelo multi-organización).
 
 ## Controller file
 
@@ -108,6 +152,8 @@ NUNCA filtrar por `tenant_id` — no existe en SURP.
 @UseGuards(JwtAuthGuard, PermissionGuard)
 @Controller('zones')
 export class ZonesController {
+  constructor(private readonly service: ZonesService) {}
+
   @Get(':externalId')
   @RequirePermission('catalog.zones.read')
   @ApiOperation({ summary: 'Obtiene una zona por su UUID' })
@@ -128,10 +174,10 @@ Para módulos con reglas de dominio complejas: `incidents`, `cases`, `persons`, 
 
 ## Idea central
 
-- **domain/** → reglas puras. Sin NestJS, sin Drizzle, sin HTTP.
+- **domain/** → reglas puras. Sin NestJS, sin Kysely, sin HTTP.
 - **use-cases/** → operaciones de negocio (crear incidente, cerrar causa, vincular persona).
 - **ports/** → interfaces (contratos) que el use case necesita.
-- **infrastructure/** → implementaciones concretas (Drizzle, MAAT HTTP, Azure Blob).
+- **infrastructure/** → implementaciones concretas (Kysely, MAAT HTTP, Azure Blob).
 - **controllers/** → HTTP delgado.
 - **module.ts** → DI wiring.
 
@@ -150,7 +196,7 @@ src/modules/incidents/
 │   ├── add-evidence.use-case.ts
 │   └── find-incidents-in-property.use-case.ts
 ├── infrastructure/
-│   ├── drizzle-incident.repository.ts
+│   ├── kysely-incident.repository.ts
 │   └── incident.mapper.ts
 ├── dto/
 │   ├── create-incident.dto.ts
@@ -193,6 +239,82 @@ export class Incident {
 }
 ```
 
+## Capa ports/
+
+```typescript
+// ports/incident.repository.port.ts
+export const INCIDENT_REPOSITORY = Symbol('INCIDENT_REPOSITORY');
+
+export interface IncidentRepositoryPort {
+  findByExternalId(externalId: string): Promise<Incident | null>;
+  save(incident: Incident): Promise<Incident>;
+  findInBoundingBox(bbox: MapBounds): Promise<Incident[]>;
+}
+```
+
+## Capa infrastructure/
+
+La implementación concreta usa Kysely. El archivo se llama por la tecnología (`kysely-incident.repository.ts`) para dejar claro qué driver usa.
+
+```typescript
+// infrastructure/kysely-incident.repository.ts
+import { Inject, Injectable } from '@nestjs/common';
+import { sql } from 'kysely';
+import { KYSELY, type KyselyDb } from '@/database/database.module';
+import { asGeoJson, makePoint } from '@/database/geo';
+import type { IncidentRepositoryPort } from '../ports/incident.repository.port';
+import { Incident } from '../domain/incident';
+import { IncidentMapper } from './incident.mapper';
+
+@Injectable()
+export class KyselyIncidentRepository implements IncidentRepositoryPort {
+  constructor(@Inject(KYSELY) private readonly db: KyselyDb) {}
+
+  async findByExternalId(externalId: string): Promise<Incident | null> {
+    const row = await this.db
+      .selectFrom('incidents')
+      .select([
+        'id',
+        'external_id',
+        'incident_type',
+        'occurred_at',
+        'status',
+        'property_id',
+        asGeoJson('location').as('location'),
+      ])
+      .where('external_id', '=', externalId)
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    return row ? IncidentMapper.toDomain(row) : null;
+  }
+
+  async save(incident: Incident): Promise<Incident> {
+    const patch = IncidentMapper.toPersistence(incident);
+    const row = await this.db
+      .updateTable('incidents')
+      .set({
+        status: patch.status,
+        location: makePoint(patch.lng, patch.lat),
+        updated_at: new Date(),
+      })
+      .where('id', '=', incident.id)
+      .returning([
+        'id',
+        'external_id',
+        'incident_type',
+        'occurred_at',
+        'status',
+        'property_id',
+        asGeoJson('location').as('location'),
+      ])
+      .executeTakeFirstOrThrow();
+    return IncidentMapper.toDomain(row);
+  }
+}
+```
+
+El **mapper** (`incident.mapper.ts`) traduce entre el row de Kysely (snake_case, GeoJSON plain) y el objeto de dominio (camelCase, `GeoPoint` value object). Es el único lugar que sabe de ambos idiomas.
+
 ## Capa use-cases/
 
 ```typescript
@@ -202,7 +324,7 @@ export class CloseIncidentUseCase {
   constructor(
     @Inject(INCIDENT_REPOSITORY)
     private readonly repo: IncidentRepositoryPort,
-    private readonly auditLogger: AuditLogger,
+    private readonly auditLogger: AuditService,
   ) {}
 
   async execute(
@@ -217,6 +339,7 @@ export class CloseIncidentUseCase {
     const saved = await this.repo.save(incident);
     await this.auditLogger.logEvent({
       actionCode: 'incident_closed',
+      entityType: 'incidents',
       entityId: incident.id,
       ctx,
     });
@@ -231,7 +354,7 @@ export class CloseIncidentUseCase {
 
 1. Validan pre-condiciones (estado, permisos).
 2. Ejecutan la transacción de dominio.
-3. Llaman explícitamente a `fn_audit_log_event()` con el action type.
+3. Llaman explícitamente a `AuditService.logEvent()` con el action type.
 
 Se exponen como `POST /entity/:externalId/{action}` — nunca como flags en un PATCH.
 
@@ -248,7 +371,7 @@ Se exponen como `POST /entity/:externalId/{action}` — nunca como flags en un P
     FindIncidentsInPropertyUseCase,
     {
       provide: INCIDENT_REPOSITORY,
-      useClass: DrizzleIncidentRepository,
+      useClass: KyselyIncidentRepository,
     },
   ],
   exports: [FindIncidentsInPropertyUseCase],
@@ -264,3 +387,5 @@ export class IncidentsModule {}
 - `PATCH` (no `PUT`) para updates parciales.
 - Tests: Pattern A → `*.service.spec.ts` con mocks del repository. Pattern B → `*.domain.spec.ts` (unitarios puros) + `*.use-case.spec.ts` (mocks de ports).
 - Integraciones externas (MAAT, Azure Blob) siempre via interface inyectada — nunca llamadas HTTP directas desde dominio/service.
+- Archivos ≤ 1000 líneas (enforzado por ESLint; 1500 en tests/generated).
+- Coverage mínimo 80%.

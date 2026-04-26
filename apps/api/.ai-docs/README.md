@@ -5,9 +5,11 @@
 
 ## Stack
 
-NestJS 11 · TypeScript 6 (strict) · PostgreSQL 16 + PostGIS 3 (multi-organización: principal / security_provider / api_consumer, sin RLS de aislamiento) ·
-Drizzle ORM · BullMQ + ioredis · Passport + JWT · class-validator + class-transformer ·
-@nestjs/swagger · Nodemailer · Jest. Azure Key Vault + Blob Storage para secretos y archivos.
+NestJS 11 · TypeScript 6 (strict, flags completos) · Node 22 LTS · PostgreSQL 16 + PostGIS 3 (multi-organización: principal / security_provider / api_consumer, sin RLS de aislamiento) ·
+Kysely + kysely-codegen (schema-first desde `/database/schema/*.sql`) · BullMQ + ioredis (worker separado con `WORKER_MODE=true`) · Passport + JWT · class-validator + class-transformer · Zod v4 (shared) ·
+@nestjs/swagger · Nodemailer + Google Workspaces (surp.cl) · Jest. Azure Key Vault + Blob Storage para secretos y archivos.
+
+**Inventario completo de stack en `/Users/jean/Projects/SURP/STACK.md` (raíz del repo).**
 
 ## Estructura
 
@@ -39,19 +41,19 @@ Antes de tocar código del backend (primera vez):
 
 ## Al empezar una tarea
 
-| Tarea | Leer primero |
-|-------|-------------|
-| Elegir pattern del módulo (A o B) | `skills/CHOOSE-MODULE-PATTERN.md` |
-| Nuevo módulo de dominio | `skills/ADD-DOMAIN-MODULE.md` |
-| Autorizar un endpoint nuevo | `standards/AUTHORIZATION.md` + `standards/SECURITY.md` |
-| Agregar permiso al catálogo | `standards/AUTHORIZATION.md` §3 + `ADR-B-007` |
-| Diseñar una tabla nueva | `standards/AUTHORIZATION.md` §7.3 (scope) + `standards/DATA-MIGRATION.md` |
-| Wiring del AuditInterceptor | `skills/ADD-AUDIT-INTERCEPTOR.md` + `ADR-B-009` |
-| Módulo geoespacial (búsqueda por zona, polígono) | `standards/GEO-PATTERNS.md` |
-| Generación async de reportes/exportaciones | `skills/ADD-ASYNC-EXPORT.md` |
-| Notificaciones por email | `standards/ERROR-HANDLING.md` |
-| Refactoring | `skills/REFACTOR-CHECKLIST.md` |
-| Script de migración desde legacy | `standards/DATA-MIGRATION.md` |
+| Tarea                                            | Leer primero                                                              |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| Elegir pattern del módulo (A o B)                | `skills/CHOOSE-MODULE-PATTERN.md`                                         |
+| Nuevo módulo de dominio                          | `skills/ADD-DOMAIN-MODULE.md`                                             |
+| Autorizar un endpoint nuevo                      | `standards/AUTHORIZATION.md` + `standards/SECURITY.md`                    |
+| Agregar permiso al catálogo                      | `standards/AUTHORIZATION.md` §3 + `ADR-B-007`                             |
+| Diseñar una tabla nueva                          | `standards/AUTHORIZATION.md` §7.3 (scope) + `standards/DATA-MIGRATION.md` |
+| Wiring del AuditInterceptor                      | `skills/ADD-AUDIT-INTERCEPTOR.md` + `ADR-B-009`                           |
+| Módulo geoespacial (búsqueda por zona, polígono) | `standards/GEO-PATTERNS.md`                                               |
+| Generación async de reportes/exportaciones       | `skills/ADD-ASYNC-EXPORT.md`                                              |
+| Notificaciones por email                         | `standards/ERROR-HANDLING.md`                                             |
+| Refactoring                                      | `skills/REFACTOR-CHECKLIST.md`                                            |
+| Script de migración desde legacy                 | `standards/DATA-MIGRATION.md`                                             |
 
 ## Origen y adaptaciones
 

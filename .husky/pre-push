@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Validación full antes de push (typecheck + lint en cada workspace).
+# pre-commit deja format only (lint-staged + prettier); el lint+typecheck
+# vive aquí porque eslint-plugin-import + flat config no se lleva con
+# paths absolutos pasados por lint-staged. Ver `package.json` raíz.
+set -e
+pnpm typecheck
+pnpm lint

@@ -1,0 +1,92 @@
+{
+  "name": "@surp/api",
+  "version": "0.0.1",
+  "private": true,
+  "description": "SURP 2.0 — Backend NestJS (HTTP + worker dual-mode)",
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "dev:worker": "WORKER_MODE=true nest start --watch",
+    "start": "node dist/main.js",
+    "start:worker": "WORKER_MODE=true node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "db:codegen": "kysely-codegen --out-file src/database/generated/database.types.ts --dialect postgres --camel-case --include-pattern 'public.*' --exclude-pattern 'public.spatial_ref_sys' --exclude-pattern 'public.geography_columns' --exclude-pattern 'public.geometry_columns' --exclude-pattern 'public.raster_columns' --exclude-pattern 'public.raster_overviews'"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.19",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "11.1.19",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/platform-express": "11.1.19",
+    "argon2": "^0.44.0",
+    "bullmq": "^5.76.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "cookie-parser": "^1.4.7",
+    "geoip-lite": "^2.0.1",
+    "handlebars": "^4.7.9",
+    "helmet": "8.1.0",
+    "ioredis": "^5.10.1",
+    "kysely": "0.27.6",
+    "nodemailer": "^8.0.6",
+    "pg": "^8.13.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "ua-parser-js": "^2.0.9",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.7",
+    "@nestjs/testing": "11.1.19",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.1",
+    "@types/geoip-lite": "^1.4.4",
+    "@types/jest": "^30.0.0",
+    "@types/ms": "^2.1.0",
+    "@types/node": "^22.19.17",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.3",
+    "@types/ua-parser-js": "^0.7.39",
+    "eslint": "^10.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "globals": "^16.5.0",
+    "jest": "^30.3.0",
+    "kysely-codegen": "0.17.0",
+    "supertest": "^7.1.2",
+    "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.46.5"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}

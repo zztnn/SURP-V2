@@ -1,0 +1,33 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { CommonModule } from './common';
+import { appConfig, databaseConfig, jwtConfig, validateEnv } from './config';
+import { DatabaseModule } from './database/database.module';
+import { NotificationsModule } from './modules/notifications';
+
+/**
+ * WorkerModule — bootstrap dual-mode con `WORKER_MODE=true`.
+ *
+ * Diferencia con AppModule:
+ *   - NO carga HealthModule, AuthModule, BlocksModule (esos son para HTTP).
+ *   - SÍ carga ConfigModule + DatabaseModule (necesarios para que repos funcionen).
+ *   - SÍ carga NotificationsModule.forWorker() — registra el processor BullMQ.
+ *
+ * Conforme se sumen workers (statistics-views-refresh, etc.), cada uno
+ * agrega su `Module.forWorker()` aquí.
+ */
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      load: [appConfig, databaseConfig, jwtConfig],
+      validate: validateEnv,
+      envFilePath: ['.env.local', '.env'],
+    }),
+    CommonModule,
+    DatabaseModule,
+    NotificationsModule.forWorker(),
+  ],
+})
+export class WorkerModule {}

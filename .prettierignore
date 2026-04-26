@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+.next
+coverage
+pnpm-lock.yaml
+surp-legacy
+database/schema
+database/seed
+.git
+storage-data
+apps/api/src/database/generated

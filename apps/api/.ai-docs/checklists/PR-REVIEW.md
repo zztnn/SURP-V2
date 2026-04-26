@@ -16,7 +16,7 @@
 ## Estructura del módulo
 
 - 🔴 Patrón A o B aplicado correctamente (sin módulos "a medio camino")
-- 🔴 Entity file con tipos Drizzle `InferSelectModel` / `InferInsertModel`
+- 🔴 Entity file con tipos Kysely: `Selectable<DB['table']>` / `Insertable<DB['table']>` / `Updateable<DB['table']>`
 - 🔴 DTOs con class-validator y mensajes en español
 - 🔴 Repository: solo acceso a datos, sin lógica de negocio
 - 🔴 Controller delgado: delega al service o use cases

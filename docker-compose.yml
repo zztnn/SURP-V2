@@ -1,0 +1,59 @@
+# SURP 2.0 — stack de dev local.
+#
+# Contenedores:
+#   - surp-postgres   PostgreSQL 16 + PostGIS 3 (puerto host 5499 → 5432)
+#   - surp-redis      Redis 7 (puerto host 6379) para BullMQ
+#   - surp-mailhog    MailHog SMTP dev (1025 SMTP host, 8025 UI host)
+#   - surp-azurite    Azurite (Azure Storage emulator) — opcional, deshabilitado
+#                     hasta que se implemente StorageService (post-MVP).
+#
+# Networking: bridge default. Los hostnames internos son
+# `postgres`, `redis`, `mailhog`. La API y el worker se conectan vía
+# DATABASE_URL=postgres://...@postgres:5432/surp etc cuando corren
+# dentro de compose; en dev local (host) usan localhost:<puerto>.
+
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: surp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: surp
+    ports:
+      - '5499:5432'
+    volumes:
+      - surp_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'postgres', '-d', 'surp']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: surp-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - surp_redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: surp-mailhog
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # UI web
+
+volumes:
+  surp_pg_data:
+  surp_redis_data:

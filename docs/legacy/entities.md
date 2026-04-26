@@ -212,21 +212,21 @@ MANTENEDORES / CATÁLOGOS
 
 Columnas `AddUserId/AddDate/ChgUserId/ChgDate/Activo` presentes en cada entidad:
 
-| Entidad | AddUser | ChgUser | Activo | Notas |
-|---------|---------|---------|--------|-------|
-| Usuario, Empresa, Persona, Vehiculo, VehiculoNI | ✓ | ✓ | ✓ | Completo |
-| Incidente, IncidentesExternos, Denuncia, Causa | ✓ | ✓ | ✓ | Completo |
-| Hito, Resolucion, ResolucionPersona, Querella | ✓ | ✓ | ✓ | Completo |
-| AbogadoCausa, DenunciaImputado, DenunciaTestigo, DenunciaVehiculo | ✓ | ✓ | ✓ | Completo (m:n) |
-| Region, Provincia, Comuna, Zona, Area, Predio | ✓ | ✓ | ✓ | Completo |
-| BienAfectado, Fiscal, Fiscalia, Tribunal, UnidadPolicial | ✓ | ✓ | ✓ | Completo |
-| Foto, FotosIncidenteExterno, Evidencia, DocumentoCausa | ✓ | ✓ | ✓ | Completo |
-| MedioIncautado, NoIncautado, GuiaDespacho, Destino | ✓ | ✓ | ✓ | Completo |
-| Seguimiento, SeguimientoVehiculo, IncidenteSeguimiento | ✓ | ✓ | ✓ | Completo |
-| ArchivoPersona | ✓ | ✗ | ✓ | **Sin ChgUser/ChgDate** (append-only) |
-| AuditoriaUsuario, AuditoriaApi, AuditoriaConsulta, AuditoriaPersonaApi | parcial | ✗ | ✗ | **Solo AddDate + UsuarioId** — append-only por diseño |
-| SurpMaat, SurpMaatDetalle, SurpMaatDetalleVinculo, SurpMaatDetalleIncidente | ✗ | ✗ | ✗ | **Sin auditoría alguna** — problema |
-| Permiso | ✓ | ✓ | ✓ | Completo pero tabla no consultada (código muerto) |
+| Entidad                                                                     | AddUser | ChgUser | Activo | Notas                                                 |
+| --------------------------------------------------------------------------- | ------- | ------- | ------ | ----------------------------------------------------- |
+| Usuario, Empresa, Persona, Vehiculo, VehiculoNI                             | ✓       | ✓       | ✓      | Completo                                              |
+| Incidente, IncidentesExternos, Denuncia, Causa                              | ✓       | ✓       | ✓      | Completo                                              |
+| Hito, Resolucion, ResolucionPersona, Querella                               | ✓       | ✓       | ✓      | Completo                                              |
+| AbogadoCausa, DenunciaImputado, DenunciaTestigo, DenunciaVehiculo           | ✓       | ✓       | ✓      | Completo (m:n)                                        |
+| Region, Provincia, Comuna, Zona, Area, Predio                               | ✓       | ✓       | ✓      | Completo                                              |
+| BienAfectado, Fiscal, Fiscalia, Tribunal, UnidadPolicial                    | ✓       | ✓       | ✓      | Completo                                              |
+| Foto, FotosIncidenteExterno, Evidencia, DocumentoCausa                      | ✓       | ✓       | ✓      | Completo                                              |
+| MedioIncautado, NoIncautado, GuiaDespacho, Destino                          | ✓       | ✓       | ✓      | Completo                                              |
+| Seguimiento, SeguimientoVehiculo, IncidenteSeguimiento                      | ✓       | ✓       | ✓      | Completo                                              |
+| ArchivoPersona                                                              | ✓       | ✗       | ✓      | **Sin ChgUser/ChgDate** (append-only)                 |
+| AuditoriaUsuario, AuditoriaApi, AuditoriaConsulta, AuditoriaPersonaApi      | parcial | ✗       | ✗      | **Solo AddDate + UsuarioId** — append-only por diseño |
+| SurpMaat, SurpMaatDetalle, SurpMaatDetalleVinculo, SurpMaatDetalleIncidente | ✗       | ✗       | ✗      | **Sin auditoría alguna** — problema                   |
+| Permiso                                                                     | ✓       | ✓       | ✓      | Completo pero tabla no consultada (código muerto)     |
 
 ---
 
@@ -234,17 +234,17 @@ Columnas `AddUserId/AddDate/ChgUserId/ChgDate/Activo` presentes en cada entidad:
 
 Resumen transversal de qué validaciones existen y dónde. Esto guía la reconstrucción de DTOs en SURP 2.0 con `class-validator`:
 
-| DataAnnotation legacy | Apariciones | class-validator equivalente (NestJS) |
-|-----------------------|-------------|--------------------------------------|
-| `[Required]` | 85+ propiedades | `@IsNotEmpty()` + `@IsDefined()` |
-| `[StringLength(n)]` | Usuario, Persona, Empresa, catálogos | `@Length(0, n)` + `@MaxLength(n)` |
-| `[MinLength(n)]` | Password, Nombres | `@MinLength(n)` |
-| `[EmailAddress]` | Usuario.CorreoElectronico, Fiscal.CorreoElectronico, Persona | `@IsEmail()` |
-| `[RegularExpression(...)]` | Rut, Patente, Telefono, DestinoLugar | `@Matches(regex)` |
-| `[DataType(DataType.Password)]` | Usuario.Password | (manejar en DTO de auth, hash antes) |
-| `[DataType(DataType.Date)]` | Fechas | `@IsDate()` o `@IsISO8601()` |
-| `[Display(Name="...")]` | Múltiples | Mover a labels en frontend (Next.js) |
-| `[NotMapped]` | Campos calculados (ZonaId, AreaId en Incidente) | No persistidos en BD — DTOs de cascada |
+| DataAnnotation legacy           | Apariciones                                                  | class-validator equivalente (NestJS)   |
+| ------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| `[Required]`                    | 85+ propiedades                                              | `@IsNotEmpty()` + `@IsDefined()`       |
+| `[StringLength(n)]`             | Usuario, Persona, Empresa, catálogos                         | `@Length(0, n)` + `@MaxLength(n)`      |
+| `[MinLength(n)]`                | Password, Nombres                                            | `@MinLength(n)`                        |
+| `[EmailAddress]`                | Usuario.CorreoElectronico, Fiscal.CorreoElectronico, Persona | `@IsEmail()`                           |
+| `[RegularExpression(...)]`      | Rut, Patente, Telefono, DestinoLugar                         | `@Matches(regex)`                      |
+| `[DataType(DataType.Password)]` | Usuario.Password                                             | (manejar en DTO de auth, hash antes)   |
+| `[DataType(DataType.Date)]`     | Fechas                                                       | `@IsDate()` o `@IsISO8601()`           |
+| `[Display(Name="...")]`         | Múltiples                                                    | Mover a labels en frontend (Next.js)   |
+| `[NotMapped]`                   | Campos calculados (ZonaId, AreaId en Incidente)              | No persistidos en BD — DTOs de cascada |
 
 ### Regex de RUT del legacy
 
@@ -257,6 +257,7 @@ En SURP 2.0: validación módulo 11 (decorator `@IsRut()` custom) además del re
 ### Regex de patente del legacy
 
 4 formatos aceptados:
+
 - `[A-Z]{2}[0-9]{4}` — "AB1234" (autos viejos).
 - `[BCDFGHJKLPRSTVWXYZ]{4}[0-9]{2}` — "BCDF12" (nueva).
 - `[A-Z]{2}\d{3}[A-Z]{1}` y `[A-Z]{3}\d{3}` — variantes.
@@ -268,6 +269,7 @@ En SURP 2.0: validación módulo 11 (decorator `@IsRut()` custom) además del re
 ### 1. Relaciones `virtual` inconsistentes
 
 Algunas navegaciones no marcadas como `virtual` (impide lazy loading):
+
 - `AuditoriaApi.Usuario`, `AuditoriaPersonaApi.Usuario`.
 - `DenunciaVehiculoNI.Denuncia`, `VehiculoNI`, `NoIncautado`.
 - `VehiculoNI.AddUser`, `ChgUser`.
@@ -343,7 +345,7 @@ Resto de refactor incompleto.
 
 ### Lazy loading
 
-- Drizzle no tiene lazy loading — todas las relaciones cargan explícitamente con `with: {}`. Evita los problemas N+1 del legacy (PITFALL B-008 del schema — `SELECT *` con 20+ includes).
+- Kysely no resuelve relaciones automáticamente — cada JOIN es explícito en el query builder. Evita los problemas N+1 del legacy (PITFALL B-008 del schema — `SELECT *` con 20+ includes): el desarrollador ve cada JOIN en el código y decide el shape del resultado.
 
 ### Relaciones bidireccionales
 
