@@ -25,9 +25,9 @@ describe('PERMISSIONS_CATALOG', () => {
     }
   });
 
-  it('mantiene los 171 permisos esperados (snapshot del módulo)', () => {
+  it('mantiene los 170 permisos esperados (snapshot del módulo)', () => {
     // Si este número cambia, actualizar también el seed
     // database/seed/02_permissions.sql y los seeds de patches.
-    expect(PERMISSIONS_CATALOG.length).toBe(171);
+    expect(PERMISSIONS_CATALOG.length).toBe(170);
   });
 });

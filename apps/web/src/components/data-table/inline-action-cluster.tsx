@@ -11,10 +11,11 @@ import type { LucideIcon } from 'lucide-react';
 /**
  * Shared inline action cluster for list-page action columns.
  *
- * Reemplaza el patrón ad-hoc `<div className="flex items-center gap-X
- * opacity-80 transition-opacity group-hover/row:opacity-100">` +
- * `<Tooltip><button>` que se duplicaba a lo largo de los módulos donde
- * aparece un cluster de íconos de acciones junto a cada fila.
+ * Replaces the ad-hoc `<div className="flex items-center gap-X opacity-80
+ * transition-opacity group-hover/row:opacity-100">` + `<Tooltip><button>`
+ * pattern that was duplicated across Product Master, Product Balance,
+ * Piece Enquiry, Hold Release, and anywhere else an inline icon cluster
+ * shows up next to a row.
  *
  * The cluster owns the opacity fade (80% at rest, 100% on row-hover via
  * the `group/row` token applied by <DataTable>'s <TableRow>), the gap,
@@ -51,8 +52,8 @@ interface InlineActionClusterProps {
   children: React.ReactNode;
   /**
    * Button + icon size. `"sm"` (24×24 button / 12×12 icon) is the dense
-   * default para listas CRUD densas; `"md"` (28×28 / 14×14) conviene
-   * en layouts con más espacio.
+   * default for CRUD list pages; `"md"` (28×28 / 14×14) suits roomier
+   * layouts (Piece Enquiry, Hold Release).
    */
   size?: InlineActionSize;
   /**

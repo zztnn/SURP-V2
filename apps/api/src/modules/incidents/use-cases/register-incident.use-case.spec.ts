@@ -149,7 +149,7 @@ describe('RegisterIncidentUseCase', () => {
 
     expect(result.externalId).toBe('incident-uuid');
     expect(result.correlativeCode).toBe('7-2026-ZML');
-    expect(result.state).toBe('submitted');
+    expect(result.state).toBe('active');
     expect(result.zoneExternalId).toBe('zone-uuid');
     expect(result.areaExternalId).toBe('area-uuid');
     expect(result.propertyExternalId).toBe('property-uuid');

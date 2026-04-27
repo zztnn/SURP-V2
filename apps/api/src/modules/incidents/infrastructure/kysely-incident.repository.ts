@@ -156,37 +156,122 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
         query.visibleZoneIds.map((id) => id.toString()),
       );
     }
-    if (query.state !== null) q = q.where('i.state', '=', query.state);
     if (query.zoneId !== null) q = q.where('i.zoneId', '=', query.zoneId.toString());
+    if (query.areaId !== null) q = q.where('i.areaId', '=', query.areaId.toString());
+    if (query.propertyId !== null) {
+      q = q.where('i.propertyId', '=', query.propertyId.toString());
+    }
     if (query.semaforo !== null) q = q.where('i.semaforo', '=', query.semaforo);
     if (query.occurredFrom !== null) q = q.where('i.occurredAt', '>=', query.occurredFrom);
     if (query.occurredTo !== null) q = q.where('i.occurredAt', '<=', query.occurredTo);
-    if (query.incidentTypeId !== null) {
-      q = q.where('i.incidentTypeId', '=', query.incidentTypeId.toString());
+    if (query.incidentTypeIds !== null && query.incidentTypeIds.length > 0) {
+      q = q.where(
+        'i.incidentTypeId',
+        'in',
+        query.incidentTypeIds.map((id) => id.toString()),
+      );
+    }
+    // Patrón ILIKE compartido entre el WHERE del free-text y el ORDER BY
+    // que prioriza matches de folio (`correlative_code`) sobre matches en
+    // descripción / zona / área / predio.
+    const freeTextPattern =
+      query.freeTextSearch !== null ? toLikePattern(query.freeTextSearch) : null;
+    if (freeTextPattern !== null) {
+      // Match en correlativo, descripción y nombres de zona/área/predio.
+      // Usa ILIKE simple — los índices `gin_trgm_ops` que tenemos en
+      // legacy y nuevo cubren los names; description es libre.
+      q = q.where((eb) =>
+        eb.or([
+          eb('i.correlativeCode', 'ilike', freeTextPattern),
+          eb('i.description', 'ilike', freeTextPattern),
+          eb('z.name', 'ilike', freeTextPattern),
+          eb('a.name', 'ilike', freeTextPattern),
+          eb('p.name', 'ilike', freeTextPattern),
+        ]),
+      );
+    }
+    if (query.personSearch !== null) {
+      // EXISTS sobre incident_party_links + parties + natural_persons.
+      // Escapado de wildcards: ver `toLikePattern`.
+      const pat = toLikePattern(query.personSearch);
+      q = q.where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('incidentPartyLinks as ipl')
+            .innerJoin('parties as pa', 'pa.id', 'ipl.partyId')
+            .leftJoin('naturalPersons as np', 'np.partyId', 'pa.id')
+            .leftJoin('legalEntities as le', 'le.partyId', 'pa.id')
+            .select(eb.lit(1).as('one'))
+            .whereRef('ipl.incidentId', '=', 'i.id')
+            .where('ipl.deletedAt', 'is', null)
+            .where('pa.deletedAt', 'is', null)
+            .where((eb2) =>
+              eb2.or([
+                eb2('pa.rut', 'ilike', pat),
+                eb2('pa.displayName', 'ilike', pat),
+                eb2('pa.foreignDocumentNumber', 'ilike', pat),
+                eb2('np.givenNames', 'ilike', pat),
+                eb2('np.paternalSurname', 'ilike', pat),
+                eb2('np.maternalSurname', 'ilike', pat),
+                eb2('le.legalName', 'ilike', pat),
+                eb2('le.tradeName', 'ilike', pat),
+              ]),
+            ),
+        ),
+      );
+    }
+    if (query.vehicleSearch !== null) {
+      const pat = toLikePattern(query.vehicleSearch);
+      q = q.where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('incidentVehicleLinks as ivl')
+            .innerJoin('vehicles as v', 'v.id', 'ivl.vehicleId')
+            .select(eb.lit(1).as('one'))
+            .whereRef('ivl.incidentId', '=', 'i.id')
+            .where('ivl.deletedAt', 'is', null)
+            .where('v.deletedAt', 'is', null)
+            .where((eb2) =>
+              eb2.or([eb2('v.licensePlate', 'ilike', pat), eb2('ivl.observedPlate', 'ilike', pat)]),
+            ),
+        ),
+      );
     }
 
     const totalRow = await q.select((eb) => eb.fn.countAll<string>().as('cnt')).executeTakeFirst();
     const total = totalRow ? Number(totalRow.cnt) : 0;
 
-    const rows = await q
-      .select([
-        'i.externalId as externalId',
-        'i.correlativeCode as correlativeCode',
-        'i.occurredAt as occurredAt',
-        'i.state as state',
-        'i.semaforo as semaforo',
-        'i.description as description',
-        sql<number>`ST_X(i.location)`.as('lng'),
-        sql<number>`ST_Y(i.location)`.as('lat'),
-        'it.code as itCode',
-        'it.name as itName',
-        'z.shortCode as zoneShortCode',
-        'z.name as zoneName',
-        'a.name as areaName',
-        'p.name as propertyName',
-        'c.name as communeName',
-        'u.displayName as userDisplayName',
-      ])
+    let rowsQuery = q.select([
+      'i.externalId as externalId',
+      'i.correlativeCode as correlativeCode',
+      'i.occurredAt as occurredAt',
+      'i.state as state',
+      'i.semaforo as semaforo',
+      'i.description as description',
+      sql<number>`ST_X(i.location)`.as('lng'),
+      sql<number>`ST_Y(i.location)`.as('lat'),
+      'it.code as itCode',
+      'it.name as itName',
+      'z.shortCode as zoneShortCode',
+      'z.name as zoneName',
+      'a.name as areaName',
+      'p.name as propertyName',
+      'c.name as communeName',
+      'u.displayName as userDisplayName',
+    ]);
+
+    // Cuando hay búsqueda libre, los matches en `correlative_code` (folio)
+    // tienen prioridad sobre los matches en descripción/zona/área/predio.
+    // El `CASE` produce 0 para folio-match y 1 para el resto; el ORDER BY
+    // ascendente los pone primero. Después se mantiene el orden por fecha.
+    if (freeTextPattern !== null) {
+      rowsQuery = rowsQuery.orderBy(
+        sql<number>`CASE WHEN i.correlative_code ILIKE ${freeTextPattern} THEN 0 ELSE 1 END`,
+        'asc',
+      );
+    }
+
+    const rows = await rowsQuery
       .orderBy('i.occurredAt', 'desc')
       .orderBy('i.id', 'desc')
       .limit(query.pageSize)
@@ -351,26 +436,6 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
     };
   }
 
-  async markClosed(
-    incidentId: bigint,
-    fromStates: readonly IncidentState[],
-    at: Date,
-    updatedById: bigint,
-  ): Promise<boolean> {
-    const result = await this.db
-      .updateTable('incidents')
-      .set({
-        state: 'closed',
-        stateChangedAt: at,
-        updatedAt: at,
-        updatedById: updatedById.toString(),
-      })
-      .where('id', '=', incidentId.toString())
-      .where('state', 'in', fromStates as IncidentState[])
-      .executeTakeFirst();
-    return Number(result.numUpdatedRows) > 0;
-  }
-
   async markVoided(
     incidentId: bigint,
     fromStates: readonly IncidentState[],
@@ -399,6 +464,16 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
 function excerpt(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1).trimEnd() + '…';
+}
+
+/**
+ * Construye un patrón ILIKE escapando los wildcards `%` y `_` que el
+ * usuario haya escrito (o que vengan de un input pegado), para que
+ * actúen como literales y no como comodines.
+ */
+function toLikePattern(raw: string): string {
+  const escaped = raw.replace(/\\/g, '\\\\').replace(/[%_]/g, (m) => `\\${m}`);
+  return `%${escaped}%`;
 }
 
 function parseAggravatingFactors(raw: unknown): readonly string[] {

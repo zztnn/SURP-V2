@@ -206,23 +206,24 @@ pnpm db:seed            # re-cargar seed
 
 ## Documentación clave
 
-| Documento                                         | Uso                                                                                                                                |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **`STACK.md`** (raíz)                             | **Inventario oficial del stack SURP 2.0 — lectura obligatoria antes de introducir cualquier librería nueva**                       |
-| `surp-legacy/`                                    | Fuente de verdad funcional del sistema anterior                                                                                    |
-| `apps/api/.ai-docs/README.md`                     | Índice y orden de lectura del backend                                                                                              |
-| `apps/web/.ai-docs/README.md`                     | Índice y orden de lectura del frontend                                                                                             |
-| `apps/api/.ai-docs/standards/POSTGIS-PATTERNS.md` | Patrones de BD con PostGIS — lectura obligatoria                                                                                   |
-| `apps/api/.ai-docs/standards/GEO-PATTERNS.md`     | Patrones geoespaciales de dominio + geometrías territoriales (regiones/provincias/comunas) + ingesta de KMZ de zonas/áreas/predios |
-| `apps/api/.ai-docs/standards/AUTHORIZATION.md`    | Modelo multi-organización + RBAC dinámico — lectura obligatoria                                                                    |
-| `apps/api/.ai-docs/standards/SECURITY.md`         | Seguridad: auth, passwords, API keys, auditoría, prohibiciones heredadas del legacy                                                |
-| `apps/api/.ai-docs/standards/DATA-MIGRATION.md`   | Mapeo legacy → SURP 2.0                                                                                                            |
-| `apps/api/.ai-docs/standards/BACKGROUND-JOBS.md`  | BullMQ + worker separado, catálogo de colas, cancelación cooperativa                                                               |
-| `apps/api/.ai-docs/standards/STORAGE.md`          | Storage dual local/Azure, validación MIME, virus scan, containers SURP, SAS                                                        |
-| `apps/api/.ai-docs/standards/NOTIFICATIONS.md`    | Email via Google Workspaces, templates MJML, catálogo de notificaciones                                                            |
-| `apps/web/.ai-docs/standards/MAP-PATTERNS.md`     | Google Maps JS API: Advanced Markers, Data Layer, Places, clustering                                                               |
-| `apps/web/.ai-docs/standards/MOBILE-SCANNER.md`   | Scanner móvil con sesión+QR: foto evidencia, documento, cédula chilena, QR/placa                                                   |
-| `database/schema/`                                | DDL fuente de verdad                                                                                                               |
+| Documento                                          | Uso                                                                                                                                |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **`STACK.md`** (raíz)                              | **Inventario oficial del stack SURP 2.0 — lectura obligatoria antes de introducir cualquier librería nueva**                       |
+| `surp-legacy/`                                     | Fuente de verdad funcional del sistema anterior                                                                                    |
+| `apps/api/.ai-docs/README.md`                      | Índice y orden de lectura del backend                                                                                              |
+| `apps/web/.ai-docs/README.md`                      | Índice y orden de lectura del frontend                                                                                             |
+| `apps/api/.ai-docs/standards/POSTGIS-PATTERNS.md`  | Patrones de BD con PostGIS — lectura obligatoria                                                                                   |
+| `apps/api/.ai-docs/standards/GEO-PATTERNS.md`      | Patrones geoespaciales de dominio + geometrías territoriales (regiones/provincias/comunas) + ingesta de KMZ de zonas/áreas/predios |
+| `apps/api/.ai-docs/standards/AUTHORIZATION.md`     | Modelo multi-organización + RBAC dinámico — lectura obligatoria                                                                    |
+| `apps/api/.ai-docs/standards/SECURITY.md`          | Seguridad: auth, passwords, API keys, auditoría, prohibiciones heredadas del legacy                                                |
+| `apps/api/.ai-docs/standards/DATA-MIGRATION.md`    | Mapeo legacy → SURP 2.0                                                                                                            |
+| `apps/api/.ai-docs/standards/BACKGROUND-JOBS.md`   | BullMQ + worker separado, catálogo de colas, cancelación cooperativa                                                               |
+| `apps/api/.ai-docs/standards/STORAGE.md`           | Storage dual local/Azure, validación MIME, virus scan, containers SURP, SAS                                                        |
+| `apps/api/.ai-docs/standards/NOTIFICATIONS.md`     | Email via Google Workspaces, templates MJML, catálogo de notificaciones                                                            |
+| `apps/web/.ai-docs/standards/MAP-PATTERNS.md`      | Google Maps JS API: Advanced Markers, Data Layer, Places, clustering                                                               |
+| `apps/web/.ai-docs/standards/MOBILE-SCANNER.md`    | Scanner móvil con sesión+QR: foto evidencia, documento, cédula chilena, QR/placa                                                   |
+| `apps/web/.ai-docs/standards/USE-EFFECT-POLICY.md` | Política de `useEffect`: prohibido directo en componentes, 5 reglas que lo reemplazan, `useMountEffect`, excepciones permitidas    |
+| `database/schema/`                                 | DDL fuente de verdad                                                                                                               |
 
 ## Skills legales — invocación obligatoria
 
@@ -268,7 +269,13 @@ La invocación se hace mediante la skill correspondiente. Si en una conversació
 13. **Coordenadas en WGS84 (EPSG:4326)** siempre. Convertir en presentación si se requiere otro SRS.
 14. **Nunca agregar co-autoría en commits.** Prohibido incluir `Co-Authored-By:` (u otros trailers de co-autoría) en el mensaje. El autor es siempre el humano que ejecuta el commit. Aplica a todos los commits, incluidos los que genera Claude Code.
 15. **El stack está cerrado por `STACK.md`.** Introducir una librería nueva requiere ADR previo. No cambiar un flag de TS, una regla de ESLint ni una versión mayor sin ADR. Los ADRs viven en `apps/api/.ai-docs/memory/ARCHITECTURE-DECISIONS.md` y `apps/web/.ai-docs/memory/ARCHITECTURE-DECISIONS.md`.
-16. **React 19 hooks discipline.** `useEffect` directo en componentes está prohibido por ESLint — usar `useMountEffect`. `useRef` solo en `src/hooks/**` y `src/providers/**`. Ver `STACK.md` §4 y §11.
+16. **React 19 hooks discipline (`useEffect` policy).** `useEffect` directo en componentes está **prohibido**. Antes de escribir cualquier effect, aplicar la jerarquía del policy:
+    1. **Derivar estado en lugar de sincronizarlo** (`const filtered = items.filter(...)` en vez de `useEffect(() => setFiltered(...))`).
+    2. **TanStack Query v5** para todo server state (cancelación, caching, staleness — nunca `useEffect` + `fetch`).
+    3. **Event handlers** para acciones del usuario (no usar state como flag para que un effect dispare la acción real).
+    4. **`useMountEffect`** (wrapper sobre `useEffect(fn, [])`) para sync único con sistemas externos en el mount: DOM, widgets de terceros, browser APIs (resize, intersection, media queries), event listeners.
+    5. **`key` prop** para reset de instancia, no coreografía de dependencias.
+       Excepciones permitidas (documentadas en el policy): focus management post-transición, transiciones de máquina de estado disparadas por queries, keyboard listeners globales que no caben en `FloatingActionBar`. `useRef` solo en `src/hooks/**` y `src/providers/**`. Los hooks custom de `src/hooks/**` SÍ pueden usar `useEffect` directo — son la capa que encapsula la lógica externa para que los componentes consuman una API declarativa. **Lectura obligatoria antes de tocar effects:** `apps/web/.ai-docs/standards/USE-EFFECT-POLICY.md`. Ver también `STACK.md` §4 y §11.
 17. **Archivos ≤ 1000 líneas** (1500 en tests/generated). ESLint lo enforcea. Si se pasa, extraer submódulo.
 18. **Coverage mínimo 80%** (branches, functions, lines, statements) en cada app. CI falla si baja.
 19. **Use cases como fuente de verdad del dominio (backend).** Toda operación significativa de negocio (registrar incidente, cerrar causa, bloquear RUT, reasignar zona, vincular persona a denuncia, emitir querella, etc.) se implementa como un **use case** en `apps/api/src/modules/{bc}/{entity}/use-cases/{verb}-{entity}.use-case.ts` siguiendo Pattern B (Clean Architecture). La lógica **no** vive en services genéricos, controllers, repositories ni processors — estos son adaptadores. Nombre = verbo de dominio (no `CreateXUseCase` genérico). Test unitario obligatorio con puertos mockeados. Las skills legales (`/legal-*`) se invocan al escribir el use case y su output se traduce en **invariantes del use case**, no en validaciones del DTO ni constraints del schema. Ver `STACK.md` §5.bis y ADR-B-020.

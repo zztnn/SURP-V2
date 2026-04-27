@@ -80,6 +80,13 @@ interface DataTableProps<TData, TValue = unknown> {
    */
   exitingRowKeys?: ReadonlySet<string> | undefined;
   getRowKey?: ((row: TData) => string) | undefined;
+  /**
+   * Returns a CSS color string (e.g. `"hsl(38 92% 55% / 0.8)"`) for the
+   * permanent left-rail stripe on the first cell of a given row, or `null`
+   * to show the default hover-only rail instead. Used by pages like Hold
+   * Release to visually group multi-line orders with a cycling color.
+   */
+  getRowStripeColor?: ((row: TData) => string | null) | undefined;
 }
 
 function DataTable<TData, TValue = unknown>({
@@ -99,6 +106,7 @@ function DataTable<TData, TValue = unknown>({
   getRowGroupKey,
   exitingRowKeys,
   getRowKey,
+  getRowStripeColor,
 }: DataTableProps<TData, TValue>): React.JSX.Element {
   const [internalSorting, setInternalSorting] = React.useState<SortingState>([]);
   const sorting = externalSorting ?? internalSorting;
@@ -115,10 +123,33 @@ function DataTable<TData, TValue = unknown>({
   );
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
-  const [hoveredGroupKey, setHoveredGroupKey] = React.useState<string | null>(null);
   const [hiddenCount, setHiddenCount] = React.useState(0);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const tbodyRef = React.useRef<HTMLTableSectionElement | null>(null);
+
+  // Group-hover highlighting via direct DOM manipulation — zero React re-renders.
+  // Inline backgroundColor is set directly so the effect works even when the
+  // CSS rule for tr[data-group-active] is not in the compiled stylesheet
+  // (Turbopack may drop attribute-selector rules it doesn't see in JSX).
+  const highlightGroup = React.useCallback((key: string | null) => {
+    const tbody = tbodyRef.current;
+    if (!tbody) {
+      return;
+    }
+    tbody.querySelectorAll<HTMLElement>('[data-group-active]').forEach((el) => {
+      el.removeAttribute('data-group-active');
+      el.style.removeProperty('background-color');
+    });
+    if (key !== null) {
+      tbody.querySelectorAll<HTMLElement>('[data-group-key]').forEach((el) => {
+        if (el.dataset['groupKey'] === key) {
+          el.setAttribute('data-group-active', 'true');
+          el.style.backgroundColor = 'hsl(var(--primary) / 0.09)';
+        }
+      });
+    }
+  }, []);
 
   const responsiveKeys = React.useMemo(() => {
     const keys: string[] = [];
@@ -161,7 +192,7 @@ function DataTable<TData, TValue = unknown>({
             row.toggleExpanded();
           }}
           className="flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-accent"
-          aria-label={row.getIsExpanded() ? 'Contraer fila' : 'Expandir fila'}
+          aria-label={row.getIsExpanded() ? 'Collapse row' : 'Expand row'}
         >
           <ChevronRight
             className={cn(
@@ -187,7 +218,7 @@ function DataTable<TData, TValue = unknown>({
           onCheckedChange={(value) => {
             table.toggleAllPageRowsSelected(!!value);
           }}
-          aria-label="Seleccionar todas"
+          aria-label="Select all"
         />
       ),
       cell: ({ row }) => (
@@ -199,7 +230,7 @@ function DataTable<TData, TValue = unknown>({
           onClick={(e) => {
             e.stopPropagation();
           }}
-          aria-label="Seleccionar fila"
+          aria-label="Select row"
         />
       ),
       enableSorting: false,
@@ -328,41 +359,6 @@ function DataTable<TData, TValue = unknown>({
     return result;
   }, [containerWidth, columns, selectable, columnVisibility]);
 
-  if (isLoading) {
-    const visibleCount = table.getVisibleLeafColumns().length || allColumns.length;
-    return (
-      <div className={cn('relative z-[1] overflow-clip rounded-lg border', className)}>
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              {Array.from({ length: visibleCount }).map((_, i) => (
-                <TableHead
-                  key={i}
-                  className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                >
-                  <Skeleton className="h-4 w-24" />
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: skeletonRows }).map((_, rowIdx) => (
-              <TableRow key={rowIdx} className="border-b border-border/40 transition-colors">
-                {Array.from({ length: visibleCount }).map((_, colIdx) => (
-                  <TableCell key={colIdx} className="px-3 py-1 text-sm">
-                    <Skeleton
-                      className={cn('h-4', colIdx === 0 ? 'w-4' : 'w-full max-w-[120px]')}
-                    />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  }
-
   const hiddenColumns = allColumns.filter((col) => {
     const key = col.id ?? (col as { accessorKey?: string }).accessorKey;
     return col.meta?.responsive && key && columnVisibility[key] === false;
@@ -371,7 +367,10 @@ function DataTable<TData, TValue = unknown>({
   return (
     <div
       ref={wrapperRef}
-      className={cn('relative z-[1] overflow-clip rounded-lg border bg-card', className)}
+      data-debug-cw={containerWidth}
+      data-debug-fixed={fixedColumnsWidth}
+      data-debug-hidden={hiddenCount}
+      className={cn('relative z-[1] w-full overflow-clip rounded-lg border bg-card', className)}
     >
       <Table>
         <TableHeader
@@ -438,18 +437,29 @@ function DataTable<TData, TValue = unknown>({
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
+        <TableBody ref={tbodyRef}>
+          {isLoading ? (
+            Array.from({ length: skeletonRows }).map((_, rowIdx) => (
+              <TableRow key={`skeleton-${rowIdx}`} className="border-b border-border/40">
+                {table.getVisibleLeafColumns().map((col, colIdx) => (
+                  <TableCell key={col.id} className="px-3 py-1 text-sm">
+                    <Skeleton
+                      className={cn('h-4', colIdx === 0 ? 'w-4' : 'w-full max-w-[120px]')}
+                    />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : table.getRowModel().rows.length > 0 ? (
             table.getRowModel().rows.map((row, rowIndex) => {
               const rowGroupKey = getRowGroupKey ? getRowGroupKey(row.original) : null;
-              const isGroupActive = rowGroupKey !== null && hoveredGroupKey === rowGroupKey;
               const exitKey = getRowKey ? getRowKey(row.original) : null;
               const isExiting = exitKey !== null && exitingRowKeys?.has(exitKey) === true;
               return (
                 <React.Fragment key={row.id}>
                   <TableRow
                     data-state={row.getIsSelected() ? 'selected' : undefined}
-                    data-group-active={isGroupActive ? true : undefined}
+                    data-group-key={rowGroupKey ?? undefined}
                     data-exiting={isExiting ? 'true' : undefined}
                     className={cn(
                       'group/row border-b border-border/40',
@@ -458,95 +468,117 @@ function DataTable<TData, TValue = unknown>({
                       // via group-hover/row. Keep background + transition on
                       // the row itself.
                       'transition-colors duration-[50ms] ease-in hover:bg-primary/[0.14] dark:hover:bg-primary/[0.12]',
-                      '[&:not(:hover)]:duration-[600ms] [&:not(:hover)]:ease-out',
+                      '[&:not(:hover)]:duration-[150ms] [&:not(:hover)]:ease-out',
                       rowIndex % 2 === 1 && 'bg-muted/40 dark:bg-muted/15',
                       onRowClick && 'cursor-pointer',
                       activeRowIndex === rowIndex && 'bg-primary/[0.06] dark:bg-primary/[0.05]',
-                      isGroupActive && 'bg-primary/[0.07] dark:bg-primary/[0.06]',
                     )}
                     onClick={() => onRowClick?.(row.original)}
                     onMouseEnter={
                       getRowGroupKey && rowGroupKey !== null
                         ? () => {
-                            setHoveredGroupKey(rowGroupKey);
+                            highlightGroup(rowGroupKey);
                           }
                         : undefined
                     }
                     onMouseLeave={
-                      getRowGroupKey
-                        ? () => {
-                            setHoveredGroupKey(null);
+                      getRowGroupKey && rowGroupKey !== null
+                        ? (e: React.MouseEvent) => {
+                            // Only clear when leaving the group entirely — skip
+                            // if the pointer moves to another row in the same group.
+                            const related = (e.relatedTarget as Element | null)?.closest('tr');
+                            if (related?.getAttribute('data-group-key') !== rowGroupKey) {
+                              highlightGroup(null);
+                            }
                           }
                         : undefined
                     }
                   >
-                    {row.getVisibleCells().map((cell, cellIndex) => (
-                      <TableCell
-                        key={cell.id}
-                        style={{
-                          ...(cell.column.columnDef.meta?.shrink ? { width: '1%' } : {}),
-                          ...(cell.column.columnDef.maxSize
-                            ? { maxWidth: cell.column.columnDef.maxSize }
-                            : {}),
-                          ...(cell.column.columnDef.meta?.stickyRight
-                            ? { position: 'sticky', right: 0, zIndex: 10 }
-                            : {}),
-                        }}
-                        className={cn(
-                          'px-3 py-1 text-xs',
-                          cell.column.columnDef.meta?.align === 'right' && 'text-right',
-                          // [&>svg]:mx-auto centers block-level SVG children
-                          // (Lucide icons) that Tailwind's preflight sets to
-                          // display:block — text-center alone does nothing on
-                          // block children.
-                          cell.column.columnDef.meta?.align === 'center' &&
-                            'text-center [&>svg]:mx-auto',
-                          cell.column.columnDef.meta?.shrink && 'whitespace-nowrap',
-                          cell.column.columnDef.meta?.stickyRight &&
-                            'bg-inherit !px-0 shadow-[-2px_0_4px_rgba(0,0,0,0.06)] [&>*]:mx-auto',
-                          // Left-rail hover/active indicator painted on the
-                          // first cell instead of <tr> because Safari/WebKit
-                          // does not render `box-shadow` on table-row elements.
-                          cellIndex === 0 && [
-                            'transition-shadow duration-[50ms] ease-in group-hover/row:shadow-[inset_3px_0_0_hsl(var(--primary))]',
-                            'group-[:not(:hover)]/row:duration-[600ms] group-[:not(:hover)]/row:ease-out',
-                            activeRowIndex === rowIndex &&
-                              'shadow-[inset_3px_0_0_hsl(var(--primary)/0.5)]',
-                            isGroupActive && 'shadow-[inset_3px_0_0_hsl(var(--primary)/0.75)]',
-                          ],
-                        )}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
+                    {row.getVisibleCells().map((cell, cellIndex) => {
+                      // Stripe color for multi-group rows (e.g. multi-line orders).
+                      // When set, it replaces the Tailwind hover-shadow classes on
+                      // the first cell with a permanent inline box-shadow so the
+                      // colour is stable rather than only visible on hover.
+                      const stripeColor =
+                        cellIndex === 0 && getRowStripeColor
+                          ? getRowStripeColor(row.original)
+                          : null;
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          style={{
+                            ...(cell.column.columnDef.meta?.shrink ? { width: '1%' } : {}),
+                            ...(cell.column.columnDef.maxSize
+                              ? { maxWidth: cell.column.columnDef.maxSize }
+                              : {}),
+                            ...(cell.column.columnDef.meta?.stickyRight
+                              ? { position: 'sticky', right: 0, zIndex: 10 }
+                              : {}),
+                            ...(stripeColor !== null
+                              ? { boxShadow: `inset 3px 0 0 ${stripeColor}` }
+                              : {}),
+                          }}
+                          className={cn(
+                            'px-3 py-1 text-xs',
+                            cell.column.columnDef.meta?.align === 'right' && 'text-right',
+                            // [&>svg]:mx-auto centers block-level SVG children
+                            // (Lucide icons) that Tailwind's preflight sets to
+                            // display:block — text-center alone does nothing on
+                            // block children.
+                            cell.column.columnDef.meta?.align === 'center' &&
+                              'text-center [&>svg]:mx-auto',
+                            cell.column.columnDef.meta?.shrink && 'whitespace-nowrap',
+                            cell.column.columnDef.meta?.stickyRight &&
+                              'bg-inherit !px-0 shadow-[-2px_0_4px_rgba(0,0,0,0.06)] [&>*]:mx-auto',
+                            // Left-rail hover/active indicator painted on the
+                            // first cell instead of <tr> because Safari/WebKit
+                            // does not render `box-shadow` on table-row elements.
+                            // Skipped for striped rows — the inline style takes over.
+                            cellIndex === 0 &&
+                              stripeColor === null && [
+                                'transition-shadow duration-[50ms] ease-in group-hover/row:shadow-[inset_3px_0_0_hsl(var(--primary))]',
+                                'group-[:not(:hover)]/row:duration-[150ms] group-[:not(:hover)]/row:ease-out',
+                                activeRowIndex === rowIndex &&
+                                  'shadow-[inset_3px_0_0_hsl(var(--primary)/0.5)]',
+                                // Persistent rail when the row is expanded so the
+                                // connector L-shape stays visible without hovering.
+                                row.getIsExpanded() && 'shadow-[inset_3px_0_0_hsl(var(--primary))]',
+                              ],
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
                   {row.getIsExpanded() && hiddenColumns.length > 0 && (
-                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                      <TableCell colSpan={row.getVisibleCells().length} className="px-3 pb-3 pt-1">
-                        <div className="rounded-md border border-border/50 bg-card/70 px-4 py-3">
-                          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                            {row
-                              .getAllCells()
-                              .filter(
-                                (cell) =>
-                                  cell.column.columnDef.meta?.responsive &&
-                                  !cell.column.getIsVisible(),
-                              )
-                              .map((cell) => {
-                                const Icon = cell.column.columnDef.meta?.icon;
-                                return (
-                                  <div key={cell.id} className="flex flex-col gap-0.5">
-                                    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                      {Icon && <Icon className="h-3 w-3 text-primary/70" />}
-                                      {cell.column.columnDef.meta?.label ?? cell.column.id}
-                                    </span>
-                                    <span className="text-sm [&_*]:!text-left">
-                                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                          </div>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableCell
+                        colSpan={row.getVisibleCells().length}
+                        className="px-4 py-3 pl-6 shadow-[inset_3px_0_0_hsl(var(--primary)/0.35)]"
+                      >
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                          {row
+                            .getAllCells()
+                            .filter(
+                              (cell) =>
+                                cell.column.columnDef.meta?.responsive &&
+                                !cell.column.getIsVisible(),
+                            )
+                            .map((cell) => {
+                              const Icon = cell.column.columnDef.meta?.icon;
+                              return (
+                                <div key={cell.id} className="flex flex-col gap-0.5">
+                                  <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                    {Icon && <Icon className="h-3 w-3 text-primary/70" />}
+                                    {cell.column.columnDef.meta?.label ?? cell.column.id}
+                                  </span>
+                                  <span className="text-sm [&_*]:!text-left">
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                  </span>
+                                </div>
+                              );
+                            })}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -560,7 +592,7 @@ function DataTable<TData, TValue = unknown>({
                 colSpan={table.getVisibleLeafColumns().length}
                 className="h-24 text-center text-muted-foreground"
               >
-                Sin resultados.
+                No results found.
               </TableCell>
             </TableRow>
           )}

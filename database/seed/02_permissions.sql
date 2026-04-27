@@ -19,7 +19,6 @@ INSERT INTO permissions (code, module, resource, action, description, is_sensiti
   ('incidents.incidents.read',         'incidents', 'incidents', 'read',         'Leer incidentes', false),
   ('incidents.incidents.create',       'incidents', 'incidents', 'create',       'Crear incidentes', false),
   ('incidents.incidents.update',       'incidents', 'incidents', 'update',       'Actualizar incidentes (informe URP)', false),
-  ('incidents.incidents.close',        'incidents', 'incidents', 'close',        'Cerrar incidentes', false),
   ('incidents.incidents.void',         'incidents', 'incidents', 'void',         'Anular incidentes (mantiene correlativo)', false),
   ('incidents.incidents.set_semaforo', 'incidents', 'incidents', 'set_semaforo', 'Modificar semáforo URP', false),
   ('incidents.evidence.upload',        'incidents', 'evidence',  'upload',       'Subir evidencia', false),

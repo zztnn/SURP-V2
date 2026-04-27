@@ -40,7 +40,7 @@ interface Mocks {
   };
 }
 
-function freshMocks(state: IncidentState = 'submitted', markOk = true): Mocks {
+function freshMocks(state: IncidentState = 'active', markOk = true): Mocks {
   return {
     incidents: {
       findStateByExternalId: jest.fn().mockResolvedValue({ id: 999n, state, zoneId: 1n }),
@@ -64,26 +64,12 @@ async function build(mocks: Mocks): Promise<VoidIncidentUseCase> {
 }
 
 describe('VoidIncidentUseCase', () => {
-  it('happy path: anula desde submitted con razón', async () => {
-    const mocks = freshMocks('submitted', true);
+  it('happy path: anula desde active con razón', async () => {
+    const mocks = freshMocks('active', true);
     const uc = await build(mocks);
     const r = await uc.execute({ externalId: 'inc-uuid', voidReason: REASON }, CTX);
     expect(r).toBe(DETAIL);
-    expect(mocks.incidents.markVoided).toHaveBeenCalledWith(
-      999n,
-      ['submitted', 'under_review', 'closed', 'escalated'],
-      REASON,
-      NOW,
-      100n,
-    );
-  });
-
-  it('anula desde closed (correlativo se mantiene ocupado)', async () => {
-    const mocks = freshMocks('closed', true);
-    const uc = await build(mocks);
-    await expect(uc.execute({ externalId: 'inc-uuid', voidReason: REASON }, CTX)).resolves.toBe(
-      DETAIL,
-    );
+    expect(mocks.incidents.markVoided).toHaveBeenCalledWith(999n, ['active'], REASON, NOW, 100n);
   });
 
   it('rechaza desde voided con 409', async () => {
@@ -117,7 +103,7 @@ describe('VoidIncidentUseCase', () => {
   });
 
   it('409 race: markVoided retorna false', async () => {
-    const mocks = freshMocks('submitted', false);
+    const mocks = freshMocks('active', false);
     const uc = await build(mocks);
     try {
       await uc.execute({ externalId: 'inc-uuid', voidReason: REASON }, CTX);

@@ -2,7 +2,7 @@
  * Dominio del informe de incidente — core funcional del SURP.
  *
  * Invariantes encapsulados aquí:
- *   - `state='submitted'` exige `correlative_*` poblados (asignados server-side
+ *   - `state='active'` exige `correlative_*` poblados (asignados server-side
  *     bajo lock atómico de `incident_sequences`).
  *   - `state='voided'` exige `voided_at/by/reason` y NO libera el correlativo.
  *   - `location` siempre tiene `location_source` declarado (gps directo o
@@ -12,15 +12,14 @@
  *
  * El correlativo `{NN}-{YYYY}-Z{XX}` se asigna en el use case con lock sobre
  * `incident_sequences`. Aquí solo lo expone como propiedad inmutable.
+ *
+ * State machine simplificada (decisión URP):
+ *   draft  → captura offline en celular, sin correlativo
+ *   active → operativo (default tras sync, ≈ legacy `Activo=true`)
+ *   voided → anulado con razón (≈ legacy `Activo=false` con auditoría)
  */
 
-export type IncidentState =
-  | 'draft'
-  | 'submitted'
-  | 'under_review'
-  | 'closed'
-  | 'escalated'
-  | 'voided';
+export type IncidentState = 'draft' | 'active' | 'voided';
 export type LocationSource =
   | 'gps'
   | 'property_centroid'
@@ -74,12 +73,12 @@ export class Incident {
   }
 
   /**
-   * Crea un incidente listo para INSERT en estado `submitted` con correlativo
+   * Crea un incidente listo para INSERT en estado `active` con correlativo
    * asignado. Lo invoca `RegisterIncidentUseCase` después de hacer el lock
    * atómico sobre `incident_sequences` y derivar el código del schema
    * `{number}-{year}-Z{shortCode}`.
    */
-  static registerSubmitted(input: {
+  static registerActive(input: {
     correlativeCode: string;
     correlativeNumber: number;
     correlativeYear: number;
@@ -128,7 +127,7 @@ export class Incident {
       semaforo: input.semaforo,
       semaforoSetAt: input.semaforoSetAt,
       semaforoSetByUserId: input.semaforoSetByUserId,
-      state: 'submitted',
+      state: 'active',
       timberFate: input.timberFate,
       aggravatingFactors: input.aggravatingFactors,
       createdByOrganizationId: input.createdByOrganizationId,

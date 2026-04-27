@@ -11,14 +11,14 @@ Cada módulo CRUD sigue la misma estructura.
 
 **Split de archivos:**
 
-| Concern | File | Export |
-|---------|------|--------|
-| Validator + constants | `src/lib/validators/{entity}.ts` | `{entity}FormSchema`, constants |
-| Column definitions | `src/components/tables/columns/{entity}-columns.tsx` | `use{Entity}Columns()` |
-| Form fields | `src/components/forms/{entity}-form.tsx` | `{Entity}FormFields` |
-| List page | `src/app/(protected)/{category}/{entity}/page.tsx` | default (Next.js) |
-| Detail page | `src/app/(protected)/{category}/{entity}/[id]/page.tsx` | default (Next.js) |
-| Map page | `src/app/(protected)/{category}/{entity}/map/page.tsx` | default (solo si es geo) |
+| Concern               | File                                                    | Export                          |
+| --------------------- | ------------------------------------------------------- | ------------------------------- |
+| Validator + constants | `src/lib/validators/{entity}.ts`                        | `{entity}FormSchema`, constants |
+| Column definitions    | `src/components/tables/columns/{entity}-columns.tsx`    | `use{Entity}Columns()`          |
+| Form fields           | `src/components/forms/{entity}-form.tsx`                | `{Entity}FormFields`            |
+| List page             | `src/app/(protected)/{category}/{entity}/page.tsx`      | default (Next.js)               |
+| Detail page           | `src/app/(protected)/{category}/{entity}/[id]/page.tsx` | default (Next.js)               |
+| Map page              | `src/app/(protected)/{category}/{entity}/map/page.tsx`  | default (solo si es geo)        |
 
 **Page anatomy (orden de render):**
 
@@ -31,13 +31,13 @@ Cada módulo CRUD sigue la misma estructura.
 
 **State management:**
 
-| Data | Tool | Location |
-|------|------|----------|
-| Server data (API) | TanStack Query | `useQuery` / `useMutation` en page |
-| Global UI (sidebar, tema) | Zustand | `src/stores/` |
-| Form data | React Hook Form + Zod | Page es dueña de `useForm()` |
-| URL state (pagination, filters) | `useSearchParams` | Page component |
-| Local UI (modal, search) | `useState` | Page component |
+| Data                            | Tool                  | Location                           |
+| ------------------------------- | --------------------- | ---------------------------------- |
+| Server data (API)               | TanStack Query        | `useQuery` / `useMutation` en page |
+| Global UI (sidebar, tema)       | Zustand               | `src/stores/`                      |
+| Form data                       | React Hook Form + Zod | Page es dueña de `useForm()`       |
+| URL state (pagination, filters) | `useSearchParams`     | Page component                     |
+| Local UI (modal, search)        | `useState`            | Page component                     |
 
 ---
 
@@ -52,6 +52,7 @@ const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 ```
 
 En el `ListToolbar`:
+
 ```tsx
 <ToggleGroup value={viewMode} onValueChange={(v) => v && setViewMode(v as 'list' | 'map')}>
   <ToggleGroupItem value="list" aria-label="Vista lista">
@@ -87,17 +88,17 @@ const { data: mapData } = useQuery({
 ```tsx
 import dynamic from 'next/dynamic';
 
-const IncidentMap = dynamic(
-  () => import('@/components/maps/incident-map'),
-  { ssr: false, loading: () => <MapSkeleton /> }
-);
+const IncidentMap = dynamic(() => import('@/components/maps/incident-map'), {
+  ssr: false,
+  loading: () => <MapSkeleton />,
+});
 
 // Uso
 <IncidentMap
   features={mapData?.features ?? []}
   onMarkerClick={(externalId) => setSelectedIncident(externalId)}
   onBoundsChange={setMapBounds}
-/>
+/>;
 ```
 
 ### Icono del marcador por tipo de incidente
@@ -117,16 +118,16 @@ const INCIDENT_TYPE_ICONS: Record<IncidentType, string> = {
 
 ## 3. Shared Composable Components
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| `EntityCard` | `src/components/entity-card.tsx` | Card shell con avatar, badges, acciones |
-| `KpiCard` | `src/components/kpi-card.tsx` | Métrica clickeable con borde accent |
-| `ListToolbar` | `src/components/list-toolbar.tsx` | Search + filter + toggle vista |
-| `DataListView` | `src/components/data-list-view.tsx` | Toggle table/card, paginación, empty/error |
-| `EntityFormModal` | `src/components/entity-form-modal.tsx` | Wrapper de diálogo para forms create/edit |
-| `PageHeader` | `src/components/page-header.tsx` | Título con ícono y descripción |
-| `MapView` | `src/components/maps/map-view.tsx` | Wrapper de Leaflet (con ssr: false) |
-| `CoordinateInput` | `src/components/forms/coordinate-input.tsx` | Input de lat/lng con mini-mapa |
+| Component         | File                                        | Purpose                                    |
+| ----------------- | ------------------------------------------- | ------------------------------------------ |
+| `EntityCard`      | `src/components/entity-card.tsx`            | Card shell con avatar, badges, acciones    |
+| `KpiCard`         | `src/components/kpi-card.tsx`               | Métrica clickeable con borde accent        |
+| `ListToolbar`     | `src/components/list-toolbar.tsx`           | Search + filter + toggle vista             |
+| `DataListView`    | `src/components/data-list-view.tsx`         | Toggle table/card, paginación, empty/error |
+| `EntityFormModal` | `src/components/entity-form-modal.tsx`      | Wrapper de diálogo para forms create/edit  |
+| `PageHeader`      | `src/components/page-header.tsx`            | Título con ícono y descripción             |
+| `MapView`         | `src/components/maps/map-view.tsx`          | Wrapper de Leaflet (con ssr: false)        |
+| `CoordinateInput` | `src/components/forms/coordinate-input.tsx` | Input de lat/lng con mini-mapa             |
 
 ---
 
@@ -142,13 +143,16 @@ const { data } = useQuery({
 
 // POST create
 const createMutation = useMutation({
-  mutationFn: (values: CreateIncidentPayload) =>
-    apiClient.post<Incident>('/incidents', values),
+  mutationFn: (values: CreateIncidentPayload) => apiClient.post<Incident>('/incidents', values),
   onSuccess: (data) => {
-    surgicalUpdateListCache(queryClient, {
-      detail: queryKeys.incidents.detail(data.externalId),
-      list: queryKeys.incidents.all,
-    }, data);
+    surgicalUpdateListCache(
+      queryClient,
+      {
+        detail: queryKeys.incidents.detail(data.externalId),
+        list: queryKeys.incidents.all,
+      },
+      data,
+    );
     toast.success('Incidente registrado exitosamente');
   },
 });
@@ -193,17 +197,21 @@ Todo formulario que guarda usa `<FloatingActionBar>`. Ver `standards/DESIGN-PATT
 
 ## 7. Anti-Patterns (NUNCA)
 
-| Anti-Pattern | En su lugar |
-|-------------|-------------|
-| `useState` para datos de API | TanStack Query |
-| `useEffect` para data fetching | TanStack Query |
-| `<table>` HTML crudo | `<DataTable>` |
-| `import L from 'leaflet'` en Server Component | `dynamic(() => import(...), { ssr: false })` |
-| Sort client-side de lista paginada | Sort params al backend |
-| Export síncrono directo | Async export 3-endpoint |
-| Asterisco rojo `*` para requeridos | `<RequiredBadge />` |
-| `new Intl.DateTimeFormat('en-GB', ...)` | `getLocaleConfig().locale` |
-| `[lat, lng]` en GeoJSON | `[lng, lat]` (spec GeoJSON) |
+| Anti-Pattern                                                 | En su lugar                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------- |
+| `useState` para datos de API                                 | TanStack Query                                          |
+| `useEffect` para data fetching                               | TanStack Query (Rule 2 de USE-EFFECT-POLICY.md)         |
+| `useEffect(() => setX(deriveFromY(y)), [y])`                 | Inline `const x = deriveFromY(y)` o `useMemo` (Rule 1)  |
+| `useEffect` como relay de evento (set flag → effect dispara) | Event handler directo (Rule 3)                          |
+| `useEffect` para reset cuando cambia ID/prop                 | `<Comp key={id} />` (Rule 5)                            |
+| `useEffect` directo en componente                            | Hook custom en `src/hooks/` (`useMountEffect` o Rule 4) |
+| `<table>` HTML crudo                                         | `<DataTable>`                                           |
+| `import L from 'leaflet'` en Server Component                | `dynamic(() => import(...), { ssr: false })`            |
+| Sort client-side de lista paginada                           | Sort params al backend                                  |
+| Export síncrono directo                                      | Async export 3-endpoint                                 |
+| Asterisco rojo `*` para requeridos                           | `<RequiredBadge />`                                     |
+| `new Intl.DateTimeFormat('en-GB', ...)`                      | `getLocaleConfig().locale`                              |
+| `[lat, lng]` en GeoJSON                                      | `[lng, lat]` (spec GeoJSON)                             |
 
 ---
 

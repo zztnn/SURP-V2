@@ -480,14 +480,6 @@ export const PERMISSIONS_CATALOG: readonly PermissionDefinition[] = [
     isSensitive: false,
   },
   {
-    code: 'incidents.incidents.close',
-    module: 'incidents',
-    resource: 'incidents',
-    action: 'close',
-    description: 'Cerrar incidentes',
-    isSensitive: false,
-  },
-  {
     code: 'incidents.incidents.create',
     module: 'incidents',
     resource: 'incidents',

@@ -17,12 +17,18 @@
 --
 -- Invariantes (LEGAL-INVARIANTS-INCIDENTS.md + INCIDENT-CODE.md + memorias):
 --   - correlative_code `{NN}-{YYYY}-Z{XX}` es asignado server-side al pasar
---     de `draft` a `submitted`. No se libera al anular. Es inmutable.
+--     de `draft` a `active`. No se libera al anular. Es inmutable.
 --   - location NOT NULL — fallback en cascada gps→predio→área→zona en aplicación.
 --   - Snapshot de alias/banda/armado en incident_party_links es inmutable.
 --   - Anular un incidente usa state='voided' (NO hard-delete).
 --   - procedural_role es enum cerrado (no catálogo) — invariante de código.
---   - state machine es enum cerrado, transiciones validadas en aplicación.
+--   - state machine SIMPLIFICADA por decisión de Iván Vuskovic / URP — solo
+--     3 estados: `draft` (capturado offline en celular, pendiente de sync),
+--     `active` (sincronizado, default operativo, equivalente al `Activo=true`
+--     del legacy), `voided` (anulado con razón obligatoria, equivalente al
+--     `Activo=false` del legacy pero auditado). Los estados intermedios
+--     `submitted/under_review/closed/escalated` se eliminaron — el legacy
+--     solo tenía `Activo bool` y los usuarios URP no usan workflow.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -126,7 +132,7 @@ CREATE TABLE incidents (
   external_id                 UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
 
   -- Código correlativo `{NN}-{YYYY}-Z{XX}` denormalizado para búsqueda rápida.
-  -- Asignado server-side al pasar de `draft` a `submitted` usando
+  -- Asignado server-side al pasar de `draft` a `active` usando
   -- incident_sequences. NULL en estado `draft`.
   correlative_code            VARCHAR(20),
   correlative_number          INT,
@@ -166,9 +172,12 @@ CREATE TABLE incidents (
   semaforo_set_at             TIMESTAMPTZ,
   semaforo_set_by_user_id     BIGINT REFERENCES users(id),
 
-  -- State machine.
+  -- State machine simplificada (decisión URP — ver header del archivo).
+  --   draft   → captura offline en celular, pendiente de sincronizar
+  --   active  → operativo (default tras sync, ≈ Activo=true del legacy)
+  --   voided  → anulado con razón (≈ Activo=false del legacy, con auditoría)
   state                       VARCHAR(20) NOT NULL DEFAULT 'draft'
-    CHECK (state IN ('draft', 'submitted', 'under_review', 'closed', 'escalated', 'voided')),
+    CHECK (state IN ('draft', 'active', 'voided')),
   state_changed_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   -- Modelo dominio forestal.
@@ -225,8 +234,8 @@ CREATE TABLE incidents (
     OR
     (state <> 'voided' AND voided_at IS NULL AND voided_by_user_id IS NULL AND void_reason IS NULL)
   ),
-  CONSTRAINT incidents_submitted_has_correlative_ck CHECK (
-    -- En state submitted o posterior debe haber correlative_code.
+  CONSTRAINT incidents_active_has_correlative_ck CHECK (
+    -- En state distinto de draft (es decir active o voided) debe haber correlative_code.
     state = 'draft' OR correlative_code IS NOT NULL
   ),
   CONSTRAINT incidents_semaforo_consistency_ck CHECK (
@@ -295,11 +304,13 @@ CREATE TRIGGER incidents_correlative_immutable_tg
   FOR EACH ROW EXECUTE FUNCTION fn_incidents_correlative_immutable();
 
 -- -----------------------------------------------------------------------------
--- 5. Trigger: prohibir hard-delete sobre incidentes en estado submitted o
--- posterior (rompería el invariante de correlativo sin brechas).
+-- 5. Trigger: prohibir hard-delete sobre incidentes con correlativo asignado
+-- (rompería el invariante de correlativos sin brechas dentro de zona+año).
+-- Solo `draft` permite hard-delete; `active` y `voided` deben pasar por
+-- soft-delete o anulación.
 -- -----------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION fn_incidents_no_hard_delete_post_submit()
+CREATE OR REPLACE FUNCTION fn_incidents_no_hard_delete_post_active()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
@@ -314,7 +325,7 @@ $$;
 
 CREATE TRIGGER incidents_no_hard_delete_tg
   BEFORE DELETE ON incidents
-  FOR EACH ROW EXECUTE FUNCTION fn_incidents_no_hard_delete_post_submit();
+  FOR EACH ROW EXECUTE FUNCTION fn_incidents_no_hard_delete_post_active();
 
 -- -----------------------------------------------------------------------------
 -- 6. incident_party_links — N:M con rol procesal y snapshot.

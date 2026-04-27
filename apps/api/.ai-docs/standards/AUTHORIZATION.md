@@ -3,6 +3,7 @@
 > Modelo completo de autorización: organizaciones, roles, permisos, reglas de visibilidad y enforcement. Lectura **obligatoria** antes de tocar cualquier módulo que lea o modifique datos.
 
 Relacionado:
+
 - ADR-B-003 — Modelo multi-organización (3 tipos)
 - ADR-B-007 — RBAC dinámico (roles editables, permisos como catálogo)
 - ADR-B-009 — Auditoría CRUD + lecturas sensibles
@@ -38,6 +39,7 @@ Relacionado:
 ```
 
 **Regla dorada:** un usuario solo puede ejercer un permiso si:
+
 1. Al menos **uno** de sus roles lo tiene asignado en `role_permissions`.
 2. El `scope` de **todos** sus roles es compatible con `organization.type` (validado al asignar cada rol).
 3. Para recursos filtrados por zona, la zona del recurso está asignada **actualmente** a su organización (solo aplica a `security_provider`).
@@ -48,11 +50,11 @@ Un usuario puede tener **múltiples roles**: los permisos efectivos son la UNIÓ
 
 ## 2. Tipos de organización
 
-| type | Descripción | Cantidad | Usuarios | Visibilidad |
-|------|-------------|----------|----------|-------------|
-| `principal` | Arauco — operador del sistema | Exactamente 1 | Varios roles (admin, patrimonial, lawyer, etc.) | Según rol, ven datos de todas las `security_provider`. Nunca ven `api_consumer` salvo en logs. |
-| `security_provider` | Empresa de seguridad contratista | N | Company admin + guardias | Solo ven/modifican incidentes/denuncias de zonas **actualmente** asignadas a su organización. |
-| `api_consumer` | Empresa forestal externa | N | Opcional: usuarios web con rol único `queries.blocks.check`. Siempre: API keys. | Solo pueden invocar `/api/v1/blocks/check?rut=X` o `?plate=X`. Ningún otro endpoint. |
+| type                | Descripción                      | Cantidad      | Usuarios                                                                        | Visibilidad                                                                                    |
+| ------------------- | -------------------------------- | ------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `principal`         | Arauco — operador del sistema    | Exactamente 1 | Varios roles (admin, patrimonial, lawyer, etc.)                                 | Según rol, ven datos de todas las `security_provider`. Nunca ven `api_consumer` salvo en logs. |
+| `security_provider` | Empresa de seguridad contratista | N             | Company admin + guardias                                                        | Solo ven/modifican incidentes/denuncias de zonas **actualmente** asignadas a su organización.  |
+| `api_consumer`      | Empresa forestal externa         | N             | Opcional: usuarios web con rol único `queries.blocks.check`. Siempre: API keys. | Solo pueden invocar `/api/v1/blocks/check?rut=X` o `?plate=X`. Ningún otro endpoint.           |
 
 ### Seed inicial
 
@@ -72,33 +74,135 @@ Los permisos tienen formato `modulo.recurso.accion` y viven como **catálogo en 
 ```typescript
 export const PERMISSIONS = {
   // incidents
-  INCIDENTS_READ: { code: 'incidents.incidents.read', module: 'incidents', resource: 'incidents', action: 'read', isSensitive: false },
-  INCIDENTS_CREATE: { code: 'incidents.incidents.create', module: 'incidents', resource: 'incidents', action: 'create', isSensitive: false },
-  INCIDENTS_UPDATE: { code: 'incidents.incidents.update', module: 'incidents', resource: 'incidents', action: 'update', isSensitive: false },
-  INCIDENTS_CLOSE: { code: 'incidents.incidents.close', module: 'incidents', resource: 'incidents', action: 'close', isSensitive: false },
-  INCIDENTS_EVIDENCE_DOWNLOAD: { code: 'incidents.evidence.download', module: 'incidents', resource: 'evidence', action: 'download', isSensitive: true },
+  INCIDENTS_READ: {
+    code: 'incidents.incidents.read',
+    module: 'incidents',
+    resource: 'incidents',
+    action: 'read',
+    isSensitive: false,
+  },
+  INCIDENTS_CREATE: {
+    code: 'incidents.incidents.create',
+    module: 'incidents',
+    resource: 'incidents',
+    action: 'create',
+    isSensitive: false,
+  },
+  INCIDENTS_UPDATE: {
+    code: 'incidents.incidents.update',
+    module: 'incidents',
+    resource: 'incidents',
+    action: 'update',
+    isSensitive: false,
+  },
+  INCIDENTS_VOID: {
+    code: 'incidents.incidents.void',
+    module: 'incidents',
+    resource: 'incidents',
+    action: 'void',
+    isSensitive: false,
+  },
+  INCIDENTS_EVIDENCE_DOWNLOAD: {
+    code: 'incidents.evidence.download',
+    module: 'incidents',
+    resource: 'evidence',
+    action: 'download',
+    isSensitive: true,
+  },
 
   // cases
-  CASES_READ: { code: 'cases.cases.read', module: 'cases', resource: 'cases', action: 'read', isSensitive: true },
-  CASES_CREATE: { code: 'cases.cases.create', module: 'cases', resource: 'cases', action: 'create', isSensitive: false },
-  CASES_ASSIGN_LAWYER: { code: 'cases.cases.assign_lawyer', module: 'cases', resource: 'cases', action: 'assign_lawyer', isSensitive: true },
+  CASES_READ: {
+    code: 'cases.cases.read',
+    module: 'cases',
+    resource: 'cases',
+    action: 'read',
+    isSensitive: true,
+  },
+  CASES_CREATE: {
+    code: 'cases.cases.create',
+    module: 'cases',
+    resource: 'cases',
+    action: 'create',
+    isSensitive: false,
+  },
+  CASES_ASSIGN_LAWYER: {
+    code: 'cases.cases.assign_lawyer',
+    module: 'cases',
+    resource: 'cases',
+    action: 'assign_lawyer',
+    isSensitive: true,
+  },
 
   // persons
-  PERSONS_READ: { code: 'persons.persons.read', module: 'persons', resource: 'persons', action: 'read', isSensitive: false },
-  PERSONS_IMPUTADO_READ: { code: 'persons.imputados.read', module: 'persons', resource: 'imputados', action: 'read', isSensitive: true },
+  PERSONS_READ: {
+    code: 'persons.persons.read',
+    module: 'persons',
+    resource: 'persons',
+    action: 'read',
+    isSensitive: false,
+  },
+  PERSONS_IMPUTADO_READ: {
+    code: 'persons.imputados.read',
+    module: 'persons',
+    resource: 'imputados',
+    action: 'read',
+    isSensitive: true,
+  },
 
   // queries (API externa + web de consulta)
-  QUERIES_BLOCKS_CHECK: { code: 'queries.blocks.check', module: 'queries', resource: 'blocks', action: 'check', isSensitive: true },
+  QUERIES_BLOCKS_CHECK: {
+    code: 'queries.blocks.check',
+    module: 'queries',
+    resource: 'blocks',
+    action: 'check',
+    isSensitive: true,
+  },
 
   // admin del sistema
-  USERS_MANAGE: { code: 'users.users.manage', module: 'users', resource: 'users', action: 'manage', isSensitive: false },
-  ROLES_MANAGE: { code: 'roles.roles.manage', module: 'roles', resource: 'roles', action: 'manage', isSensitive: true },
-  ORGANIZATIONS_MANAGE: { code: 'organizations.organizations.manage', module: 'organizations', resource: 'organizations', action: 'manage', isSensitive: true },
-  AUDIT_READ: { code: 'audit.logs.read', module: 'audit', resource: 'logs', action: 'read', isSensitive: true },
+  USERS_MANAGE: {
+    code: 'users.users.manage',
+    module: 'users',
+    resource: 'users',
+    action: 'manage',
+    isSensitive: false,
+  },
+  ROLES_MANAGE: {
+    code: 'roles.roles.manage',
+    module: 'roles',
+    resource: 'roles',
+    action: 'manage',
+    isSensitive: true,
+  },
+  ORGANIZATIONS_MANAGE: {
+    code: 'organizations.organizations.manage',
+    module: 'organizations',
+    resource: 'organizations',
+    action: 'manage',
+    isSensitive: true,
+  },
+  AUDIT_READ: {
+    code: 'audit.logs.read',
+    module: 'audit',
+    resource: 'logs',
+    action: 'read',
+    isSensitive: true,
+  },
 
   // maat (solo personal autorizado de Arauco)
-  MAAT_READ: { code: 'maat.records.read', module: 'maat', resource: 'records', action: 'read', isSensitive: true },
-  MAAT_MANAGE: { code: 'maat.records.manage', module: 'maat', resource: 'records', action: 'manage', isSensitive: true },
+  MAAT_READ: {
+    code: 'maat.records.read',
+    module: 'maat',
+    resource: 'records',
+    action: 'read',
+    isSensitive: true,
+  },
+  MAAT_MANAGE: {
+    code: 'maat.records.manage',
+    module: 'maat',
+    resource: 'records',
+    action: 'manage',
+    isSensitive: true,
+  },
 } as const;
 ```
 
@@ -115,22 +219,22 @@ Al arrancar la API, un job verifica que cada entrada del catálogo exista en la 
 
 Son roles `is_system=true`: no se borran ni se renombran. Sus permisos sí son editables por el admin (con warning en la UI). Son el piso de migración desde el legacy.
 
-| Rol | Scope | Origen legacy | Permisos (resumen) |
-|-----|-------|---------------|---------------------|
-| `administrator` | `principal_only` | `Administrador` | Todos los permisos |
-| `patrimonial_admin` | `principal_only` | `UnidadPatrimonialAdministrador` | Todo en `incidents`, `complaints`, `persons`, `vehicles`, `maat.read`, lectura de `cases` |
-| `patrimonial` | `principal_only` | `UnidadPatrimonial` (para usuarios de Arauco) | CRUD sobre `incidents`, `complaints`, `persons`, `vehicles`, lectura de `cases` |
-| `lawyer_admin` | `principal_only` | `AbogadoAdministrador` | Todo en `cases`, `assign_lawyer`, lectura de `incidents`/`complaints` |
-| `lawyer` | `principal_only` | `Abogado` | CRUD sobre causas asignadas, lectura de `incidents`/`complaints` |
-| `field_lawyer` | `principal_only` | `AbogadoTerreno` | Similar a `lawyer` con permisos de terreno |
-| `external_lawyer` | `principal_only` | (nuevo) | Similar a `lawyer` para abogados externos contratados. Auditoría extra. |
-| `fires_specialist` | `principal_only` | `Incendios` | Módulo `fires` (cuando se implemente) |
-| `surveillance` | `principal_only` | `Seguimiento` | Módulo `surveillance` (patrols, tracking) |
-| `viewer` | `principal_only` | `Visor` | Lectura de todo menos `maat`, `cases` sensibles |
-| `queries_maat` | `principal_only` | `Consultas` | `maat.read` + `queries.blocks.check` |
-| `company_admin` | `security_provider_only` | (nuevo — antes implícito) | CRUD `incidents`/`complaints` de zonas asignadas + gestión de usuarios de su empresa |
-| `guard` | `security_provider_only` | `UnidadPatrimonial` (para usuarios de contratistas) | CRUD `incidents` + `create complaint` de zonas asignadas |
-| `api_blocks_check` | `api_consumer_only` | `UsuarioApi` | Solo `queries.blocks.check` |
+| Rol                 | Scope                    | Origen legacy                                       | Permisos (resumen)                                                                        |
+| ------------------- | ------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `administrator`     | `principal_only`         | `Administrador`                                     | Todos los permisos                                                                        |
+| `patrimonial_admin` | `principal_only`         | `UnidadPatrimonialAdministrador`                    | Todo en `incidents`, `complaints`, `persons`, `vehicles`, `maat.read`, lectura de `cases` |
+| `patrimonial`       | `principal_only`         | `UnidadPatrimonial` (para usuarios de Arauco)       | CRUD sobre `incidents`, `complaints`, `persons`, `vehicles`, lectura de `cases`           |
+| `lawyer_admin`      | `principal_only`         | `AbogadoAdministrador`                              | Todo en `cases`, `assign_lawyer`, lectura de `incidents`/`complaints`                     |
+| `lawyer`            | `principal_only`         | `Abogado`                                           | CRUD sobre causas asignadas, lectura de `incidents`/`complaints`                          |
+| `field_lawyer`      | `principal_only`         | `AbogadoTerreno`                                    | Similar a `lawyer` con permisos de terreno                                                |
+| `external_lawyer`   | `principal_only`         | (nuevo)                                             | Similar a `lawyer` para abogados externos contratados. Auditoría extra.                   |
+| `fires_specialist`  | `principal_only`         | `Incendios`                                         | Módulo `fires` (cuando se implemente)                                                     |
+| `surveillance`      | `principal_only`         | `Seguimiento`                                       | Módulo `surveillance` (patrols, tracking)                                                 |
+| `viewer`            | `principal_only`         | `Visor`                                             | Lectura de todo menos `maat`, `cases` sensibles                                           |
+| `queries_maat`      | `principal_only`         | `Consultas`                                         | `maat.read` + `queries.blocks.check`                                                      |
+| `company_admin`     | `security_provider_only` | (nuevo — antes implícito)                           | CRUD `incidents`/`complaints` de zonas asignadas + gestión de usuarios de su empresa      |
+| `guard`             | `security_provider_only` | `UnidadPatrimonial` (para usuarios de contratistas) | CRUD `incidents` + `create complaint` de zonas asignadas                                  |
+| `api_blocks_check`  | `api_consumer_only`      | `UsuarioApi`                                        | Solo `queries.blocks.check`                                                               |
 
 Nota sobre `UnidadPatrimonial`: el perfil legacy existe tanto en Arauco como en contratistas. En SURP 2.0 se separa en dos roles (`patrimonial` y `guard`) porque los permisos reales divergen (guards solo ven su zona).
 
@@ -154,17 +258,21 @@ Implementación en query:
 // Traducción automática del interceptor:
 const orgId = req.user.organizationId;
 
-await db.select()
+await db
+  .select()
   .from(incidents)
   .innerJoin(properties, eq(incidents.propertyId, properties.id))
   .innerJoin(zones, eq(properties.zoneId, zones.id))
-  .innerJoin(orgZoneAssignments, and(
-    eq(orgZoneAssignments.zoneId, zones.id),
-    eq(orgZoneAssignments.organizationId, orgId),
-    // la asignación debe estar activa ahora
-    lte(orgZoneAssignments.validFrom, now),
-    or(isNull(orgZoneAssignments.validTo), gte(orgZoneAssignments.validTo, now)),
-  ));
+  .innerJoin(
+    orgZoneAssignments,
+    and(
+      eq(orgZoneAssignments.zoneId, zones.id),
+      eq(orgZoneAssignments.organizationId, orgId),
+      // la asignación debe estar activa ahora
+      lte(orgZoneAssignments.validFrom, now),
+      or(isNull(orgZoneAssignments.validTo), gte(orgZoneAssignments.validTo, now)),
+    ),
+  );
 ```
 
 En la práctica se materializa una vista o CTE para no duplicar el join.
@@ -352,7 +460,7 @@ Los services reciben `RequestContext` por DI y el `OrgScopedRepository` agrega e
 @Injectable()
 export class IncidentsRepository extends OrgScopedRepository<Incident> {
   protected readonly table = incidents;
-  protected readonly scopeStrategy = 'zone';   // 'zone' | 'direct_org' | 'none'
+  protected readonly scopeStrategy = 'zone'; // 'zone' | 'direct_org' | 'none'
 
   // scopeStrategy='zone' → el base query añade los joins a properties/zones/org_zone_assignments
   // scopeStrategy='direct_org' → WHERE table.organization_id = :currentOrgId
@@ -362,24 +470,25 @@ export class IncidentsRepository extends OrgScopedRepository<Incident> {
 
 Las tablas y su estrategia:
 
-| Tabla | Estrategia | Notas |
-|-------|-----------|-------|
-| `incidents` | `zone` | Visibilidad por zona asignada |
-| `complaints` | `zone` | Hereda del incidente |
-| `incident_evidences` | `zone` | Hereda del incidente |
-| `cases` | `none` | Solo `principal` |
-| `case_lawyers`, `case_milestones` | `none` | Solo `principal` |
-| `persons`, `vehicles` | `direct_org` + `principal override` | `security_provider` ve solo los creados por su org; `principal` ve todos |
-| `maat_records` | `none` | Solo `principal` con permiso explícito `maat.*` |
-| `users`, `roles`, `permissions` | admin only (permiso `*.manage`) | |
+| Tabla                             | Estrategia                          | Notas                                                                    |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `incidents`                       | `zone`                              | Visibilidad por zona asignada                                            |
+| `complaints`                      | `zone`                              | Hereda del incidente                                                     |
+| `incident_evidences`              | `zone`                              | Hereda del incidente                                                     |
+| `cases`                           | `none`                              | Solo `principal`                                                         |
+| `case_lawyers`, `case_milestones` | `none`                              | Solo `principal`                                                         |
+| `persons`, `vehicles`             | `direct_org` + `principal override` | `security_provider` ve solo los creados por su org; `principal` ve todos |
+| `maat_records`                    | `none`                              | Solo `principal` con permiso explícito `maat.*`                          |
+| `users`, `roles`, `permissions`   | admin only (permiso `*.manage`)     |                                                                          |
 
 ### 7.4 Resolución de permisos al autenticar
 
 ```typescript
 // AuthService.buildUserContext(user)
-const roles = await this.rolesRepo.findByUserId(user.id);              // N roles
-const permissions = await this.rolesRepo.getPermissionCodesForRoles(   // UNIÓN
-  roles.map(r => r.id)
+const roles = await this.rolesRepo.findByUserId(user.id); // N roles
+const permissions = await this.rolesRepo.getPermissionCodesForRoles(
+  // UNIÓN
+  roles.map((r) => r.id),
 );
 
 return {
@@ -388,15 +497,16 @@ return {
   sessionId,
   organizationId: user.organizationId,
   organizationType: user.organization.type,
-  roleIds: roles.map(r => r.id),
-  roleNames: roles.map(r => r.name),
-  permissions,   // string[] embebido en JWT (UNIÓN de todos los roles)
+  roleIds: roles.map((r) => r.id),
+  roleNames: roles.map((r) => r.name),
+  permissions, // string[] embebido en JWT (UNIÓN de todos los roles)
 };
 ```
 
 Cambios en `role_permissions` o `user_roles` invalidan la cache en Redis y fuerzan re-resolución en el siguiente request. Los JWTs viejos se respetan hasta su expiración (15 min) — trade-off aceptable.
 
 **Asignación y revocación:**
+
 - `UsersService.assignRole(userId, roleId, assignedById)` — inserta en `user_roles`. Valida que `role.scope` sea compatible con `organization.type` del usuario. Audita el evento.
 - `UsersService.revokeRole(userId, roleId, revokedById)` — elimina la fila y audita. Valida que el usuario quede con al menos un rol (un usuario sin roles no puede autenticar).
 

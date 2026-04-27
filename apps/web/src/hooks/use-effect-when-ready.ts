@@ -9,6 +9,11 @@ import { useEffect, useRef } from 'react';
  *
  * @param effect   Effect function (may return a cleanup)
  * @param ready    Condition that gates execution
+ *
+ * Policy: exception — fire-once gated effect (Rule 4 variant). Equivalent
+ * to `useMountEffect` but the mount of the side-effect is delayed until a
+ * precondition is satisfied. Prefer Rule 4 (`<Wrapper isReady>...<Inner />`
+ * with `useMountEffect` inside) when the gate can be expressed structurally.
  */
 export function useEffectWhenReady(effect: () => (() => void) | undefined, ready: boolean): void {
   const firedRef = useRef(false);

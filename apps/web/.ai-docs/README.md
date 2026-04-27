@@ -30,26 +30,28 @@ Antes de tocar código del frontend (primera vez):
 3. `standards/CLEAN-CODE.md`
 4. `standards/DESIGN-PATTERNS.md`
 5. `standards/COMPONENT-ANATOMY.md`
-6. `standards/MAP-PATTERNS.md`
-7. `standards/ERROR-HANDLING.md`
-8. `standards/STYLING.md`
-9. `memory/ARCHITECTURE-DECISIONS.md`
-10. `memory/KNOWN-PITFALLS.md`
+6. `standards/USE-EFFECT-POLICY.md` — **lectura obligatoria antes de escribir cualquier `useEffect`**
+7. `standards/MAP-PATTERNS.md`
+8. `standards/ERROR-HANDLING.md`
+9. `standards/STYLING.md`
+10. `memory/ARCHITECTURE-DECISIONS.md`
+11. `memory/KNOWN-PITFALLS.md`
 
 ## Al empezar una tarea
 
-| Tarea | Leer primero |
-|-------|-------------|
-| Nuevo módulo CRUD | `skills/CREATE-CRUD-MODULE.md` |
-| Página de lista con filtros | `skills/CREATE-LIST-PAGE.md` |
-| Formulario de creación/edición | `skills/CREATE-FORM-PAGE.md` |
-| Agregar campo a un formulario | `skills/ADD-FORM-FIELD.md` |
-| Visualización de mapa / incidentes geo | `standards/MAP-PATTERNS.md` |
-| Exportación async (Excel, PDF) | `skills/ADD-ASYNC-EXPORT.md` |
-| Trail de auditoría en detalle | `skills/ADD-AUDIT-TRAIL.md` |
-| Errores de servidor en formularios | `skills/HANDLE-SERVER-ERRORS-IN-FORMS.md` |
-| Guard de cambios no guardados | `skills/PREVENT-UNSAVED-CHANGES-LOSS.md` |
-| Refactoring | `skills/REFACTOR-CHECKLIST.md` |
+| Tarea                                        | Leer primero                              |
+| -------------------------------------------- | ----------------------------------------- |
+| Nuevo módulo CRUD                            | `skills/CREATE-CRUD-MODULE.md`            |
+| Página de lista con filtros                  | `skills/CREATE-LIST-PAGE.md`              |
+| Formulario de creación/edición               | `skills/CREATE-FORM-PAGE.md`              |
+| Agregar campo a un formulario                | `skills/ADD-FORM-FIELD.md`                |
+| Visualización de mapa / incidentes geo       | `standards/MAP-PATTERNS.md`               |
+| Exportación async (Excel, PDF)               | `skills/ADD-ASYNC-EXPORT.md`              |
+| Trail de auditoría en detalle                | `skills/ADD-AUDIT-TRAIL.md`               |
+| Errores de servidor en formularios           | `skills/HANDLE-SERVER-ERRORS-IN-FORMS.md` |
+| Guard de cambios no guardados                | `skills/PREVENT-UNSAVED-CHANGES-LOSS.md`  |
+| Refactoring                                  | `skills/REFACTOR-CHECKLIST.md`            |
+| Tocar `useEffect` (cualquier hook lifecycle) | `standards/USE-EFFECT-POLICY.md`          |
 
 ## Tareas comunes (referencia rápida)
 

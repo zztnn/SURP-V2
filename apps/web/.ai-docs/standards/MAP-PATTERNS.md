@@ -221,26 +221,31 @@ export function IncidentMap({ features, onMarkerClick }: IncidentMapProps) {
 
 ## Clustering con `@googlemaps/markerclusterer`
 
-Cuando hay más de ~200 marcadores visibles:
+Cuando hay más de ~200 marcadores visibles. El componente consume un hook
+custom — `useEffect` directo en componentes está prohibido (ver
+[USE-EFFECT-POLICY.md](./USE-EFFECT-POLICY.md)). El hook encapsula la
+sincronización con la API externa de Google Maps (Rule 4).
 
 ```typescript
-// apps/web/components/maps/incident-cluster.tsx
-'use client';
-
-import { useMap } from '@vis.gl/react-google-maps';
+// apps/web/src/hooks/use-marker-clusterer.ts
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
-export function IncidentCluster({ features }: { features: IncidentFeature[] }) {
-  const map = useMap();
-  const clustererRef = useRef<MarkerClusterer | null>(null);
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
-
+/**
+ * Mantiene un MarkerClusterer sincronizado con `features` mientras el
+ * `map` esté disponible. Crea/destruye markers imperativos (fuera del
+ * árbol React) — el clusterer los gestiona.
+ *
+ * Policy: Rule 4 — Google Maps external API subscription.
+ */
+export function useMarkerClusterer(
+  map: google.maps.Map | null,
+  features: IncidentFeature[],
+  onMarkerClick: (externalId: string) => void,
+): void {
   useEffect(() => {
     if (!map) return;
-
-    // Crear markers imperativos (sin React) — clusterer los gestiona
-    markersRef.current = features.map((feature) => {
+    const markers = features.map((feature) => {
       const [lng, lat] = feature.geometry.coordinates;
       const marker = new google.maps.marker.AdvancedMarkerElement({
         position: { lat, lng },
@@ -248,14 +253,31 @@ export function IncidentCluster({ features }: { features: IncidentFeature[] }) {
       marker.addListener('click', () => onMarkerClick(feature.properties.externalId));
       return marker;
     });
-
-    clustererRef.current = new MarkerClusterer({ map, markers: markersRef.current });
-
+    const clusterer = new MarkerClusterer({ map, markers });
     return () => {
-      clustererRef.current?.clearMarkers();
+      clusterer.clearMarkers();
     };
-  }, [map, features]);
+  }, [map, features, onMarkerClick]);
+}
+```
 
+```typescript
+// apps/web/src/components/maps/incident-cluster.tsx
+'use client';
+
+import { useMap } from '@vis.gl/react-google-maps';
+
+import { useMarkerClusterer } from '@/hooks/use-marker-clusterer';
+
+export function IncidentCluster({
+  features,
+  onMarkerClick,
+}: {
+  features: IncidentFeature[];
+  onMarkerClick: (externalId: string) => void;
+}) {
+  const map = useMap();
+  useMarkerClusterer(map, features, onMarkerClick);
   return null;
 }
 ```
@@ -272,12 +294,50 @@ export function IncidentCluster({ features }: { features: IncidentFeature[] }) {
 
 El backend retorna GeoJSON (`FeatureCollection` de `MultiPolygon`). Renderizar con el Data Layer de Google Maps (soporta GeoJSON nativo):
 
+El componente consume un hook custom — `useEffect` directo en componentes
+está prohibido (ver [USE-EFFECT-POLICY.md](./USE-EFFECT-POLICY.md)).
+
 ```typescript
-// apps/web/components/maps/property-layer.tsx
+// apps/web/src/hooks/use-google-data-layer.ts
+import { useEffect } from 'react';
+
+/**
+ * Sincroniza un FeatureCollection GeoJSON con la Data Layer del map.
+ * Limpia las features previas en cada cambio para evitar acumulación.
+ *
+ * Policy: Rule 4 — Google Maps Data Layer API subscription.
+ */
+export function useGoogleDataLayer(
+  map: google.maps.Map | null,
+  mapsLib: google.maps.MapsLibrary | null,
+  featureCollection: GeoJSON.FeatureCollection | null,
+  style: google.maps.Data.StylingFunction,
+): void {
+  useEffect(() => {
+    if (!map || !mapsLib || !featureCollection) return;
+    map.data.addGeoJson(featureCollection);
+    map.data.setStyle(style);
+    return () => {
+      map.data.forEach((f) => map.data.remove(f));
+    };
+  }, [map, mapsLib, featureCollection, style]);
+}
+```
+
+```typescript
+// apps/web/src/components/maps/property-layer.tsx
 'use client';
 
 import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { useEffect } from 'react';
+
+import { useGoogleDataLayer } from '@/hooks/use-google-data-layer';
+
+const PROPERTY_STYLE: google.maps.Data.StylingFunction = () => ({
+  fillColor: '#22c55e',
+  fillOpacity: 0.15,
+  strokeColor: '#15803d',
+  strokeWeight: 2,
+});
 
 export function PropertyLayer({
   featureCollection,
@@ -286,23 +346,7 @@ export function PropertyLayer({
 }) {
   const map = useMap();
   const mapsLib = useMapsLibrary('maps');
-
-  useEffect(() => {
-    if (!map || !mapsLib || !featureCollection) return;
-
-    map.data.addGeoJson(featureCollection);
-    map.data.setStyle((feature) => ({
-      fillColor: '#22c55e',
-      fillOpacity: 0.15,
-      strokeColor: '#15803d',
-      strokeWeight: 2,
-    }));
-
-    return () => {
-      map.data.forEach((f) => map.data.remove(f));
-    };
-  }, [map, mapsLib, featureCollection]);
-
+  useGoogleDataLayer(map, mapsLib, featureCollection, PROPERTY_STYLE);
   return null;
 }
 ```
@@ -409,31 +453,58 @@ El `onBoundsChange` del `<MapView>` alimenta el state; TanStack Query dedupea co
 
 Para formularios que piden una dirección (p.ej. domicilio de imputado en `persons`):
 
+El componente consume un hook custom — `useEffect` directo en componentes
+está prohibido (ver [USE-EFFECT-POLICY.md](./USE-EFFECT-POLICY.md)).
+
 ```typescript
-// apps/web/components/forms/address-autocomplete.tsx
-'use client';
+// apps/web/src/hooks/use-places-autocomplete.ts
+import { useEffect, useEffectEvent } from 'react';
 
-import { useMapsLibrary } from '@vis.gl/react-google-maps';
-import { useEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 
-export function AddressAutocomplete({ onSelect }: { onSelect: (place: google.maps.places.PlaceResult) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const placesLib = useMapsLibrary('places');
-
+/**
+ * Adjunta `places.Autocomplete` al input cuando la librería esté lista.
+ * `onSelect` se mantiene estable vía `useEffectEvent`.
+ *
+ * Policy: Rule 4 — Google Places API subscription.
+ */
+export function usePlacesAutocomplete(
+  inputRef: RefObject<HTMLInputElement | null>,
+  placesLib: google.maps.PlacesLibrary | null,
+  onSelect: (place: google.maps.places.PlaceResult) => void,
+): void {
+  const handleSelect = useEffectEvent(onSelect);
   useEffect(() => {
     if (!placesLib || !inputRef.current) return;
-
     const autocomplete = new placesLib.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: 'cl' },       // solo Chile
+      componentRestrictions: { country: 'cl' },
       fields: ['formatted_address', 'geometry', 'address_components'],
       types: ['address'],
     });
-
     autocomplete.addListener('place_changed', () => {
-      onSelect(autocomplete.getPlace());
+      handleSelect(autocomplete.getPlace());
     });
-  }, [placesLib, onSelect]);
+  }, [placesLib, inputRef]);
+}
+```
 
+```typescript
+// apps/web/src/components/forms/address-autocomplete.tsx
+'use client';
+
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useRef } from 'react';
+
+import { usePlacesAutocomplete } from '@/hooks/use-places-autocomplete';
+
+export function AddressAutocomplete({
+  onSelect,
+}: {
+  onSelect: (place: google.maps.places.PlaceResult) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const placesLib = useMapsLibrary('places');
+  usePlacesAutocomplete(inputRef, placesLib, onSelect);
   return <Input ref={inputRef} placeholder="Buscar dirección en Chile..." />;
 }
 ```

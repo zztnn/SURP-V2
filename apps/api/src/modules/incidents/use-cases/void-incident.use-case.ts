@@ -16,12 +16,7 @@ import {
   type IncidentRepositoryPort,
 } from '../ports/incident.repository.port';
 
-const VOIDABLE_FROM: readonly IncidentState[] = [
-  'submitted',
-  'under_review',
-  'closed',
-  'escalated',
-];
+const VOIDABLE_FROM: readonly IncidentState[] = ['active'];
 
 export interface VoidIncidentInput {
   externalId: string;
@@ -32,13 +27,12 @@ export type VoidIncidentResult = IncidentDetail;
 
 /**
  * Anula un incidente. NO libera el correlativo (invariante del schema:
- * `incidents_no_hard_delete_post_submit` + `incidents_void_consistency_ck`
+ * `incidents_no_hard_delete_post_active` + `incidents_void_consistency_ck`
  * garantizan integridad). El correlativo queda ocupado por el incidente
  * `voided` con su razón documentada.
  *
- * Estados origen válidos: `submitted | under_review | closed | escalated`.
- * NO se puede anular un `draft` (use hard-delete) ni un `voided` (ya lo
- * está).
+ * Estado origen válido: `active`. NO se puede anular un `draft` (use
+ * hard-delete) ni un `voided` (ya lo está).
  */
 @Injectable()
 export class VoidIncidentUseCase {

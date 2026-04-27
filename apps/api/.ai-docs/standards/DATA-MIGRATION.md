@@ -137,34 +137,69 @@ Combinaciones marcadas "error" se reportan en el dry-run para decisión manual (
 
 ## 5. Mapeo: Incidents
 
-**Legacy:** `Incidente` + `IncidenteDetalle` + relacionadas. Tiene lat/lon como columnas NUMERIC separadas.
+**Legacy:** `Incidente` (`SACL.EF.Entidades.Incidente`) — campos relevantes:
+`IncidenteId`, `TipoIncidente` (enum), `FechaTomaConocimiento`, `Latitud`,
+`Longitud`, `Relato`, `Codigo`, `Numero`, `Activo` (bool), `Toma` (bool),
+`Semaforo` (nullable enum), `AddUser*`, `ChgUser*`. Geo en columnas
+`NUMERIC` separadas; sin TZ.
 
-**SURP 2.0:** `incidents` con `location GEOMETRY(POINT, 4326)`.
+**SURP 2.0:** `incidents` con `location GEOMETRY(POINT, 4326)` y state
+machine simplificada de 3 valores (`draft`, `active`, `voided`) tras
+decisión URP — ver `database/schema/06_incidents_core.sql` header.
 
-| Legacy                | SURP 2.0                                       | Transformación                                                                                                              |
-| --------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `IncidenteId`         | `migrated_from_legacy_id`                      | Mantener                                                                                                                    |
-| `FechaOcurrencia`     | `occurred_at`                                  | Convertir a `TIMESTAMPTZ` asumiendo `America/Santiago` (el legacy guarda en local sin TZ)                                   |
-| `Latitud`, `Longitud` | `location`                                     | `ST_SetSRID(ST_MakePoint(lng, lat), 4326)`. Si una de las dos es NULL o fuera de rango Chile, `location = NULL` y reportar. |
-| `TipoIncidenteId`     | `incident_type_id`                             | Lookup por mapeo de catálogos                                                                                               |
-| `EstadoIncidente`     | `status`                                       | Mapeo de enum legacy a enum nuevo (ver abajo)                                                                               |
-| `PredioId`            | `property_id`                                  | Lookup vía catálogo migrado                                                                                                 |
-| `Descripcion`         | `description`                                  | Trim                                                                                                                        |
-| `AddUserId`           | `created_by_id` + `created_by_organization_id` | `created_by_organization_id` = `organization_id` del creador al momento de creación (snapshot)                              |
-| —                     | `organization_id`                              | **Organización actualmente asignada a la zona del predio** (resuelto al migrar vía `property → zone → current assignment`)  |
-| `Add*`, `Chg*`        | estándar                                       |                                                                                                                             |
+| Legacy                             | SURP 2.0                                       | Transformación                                                                                                              |
+| ---------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `IncidenteId`                      | `migrated_from_legacy_id`                      | Mantener                                                                                                                    |
+| `FechaTomaConocimiento`            | `occurred_at`                                  | Convertir a `TIMESTAMPTZ` asumiendo `America/Santiago` (el legacy guarda en local sin TZ)                                   |
+| `Latitud`, `Longitud`              | `location`                                     | `ST_SetSRID(ST_MakePoint(lng, lat), 4326)`. Si una de las dos es NULL o fuera de rango Chile, `location = NULL` y reportar. |
+| `TipoIncidente`                    | `incident_type_id`                             | Lookup por mapeo del enum legacy a códigos del catálogo `incident_types`                                                    |
+| `Codigo`, `Numero`                 | `correlative_code`, `correlative_number`       | Mantener literal — el legacy ya emite `{NN}-{YYYY}-Z{XX}`. `correlative_year` se deriva de `FechaTomaConocimiento.Year`.    |
+| `Activo` + `Denuncias`/`voided_*`  | `state` (ver siguiente sección)                | Proyección — el legacy no tiene state machine, solo flag `Activo`.                                                          |
+| `Toma`                             | (ver siguiente sección)                        | Flag legacy = incidente vinculado a toma de terreno. Mapear a `aggravating_factors`/`incident_type` según workshop URP.     |
+| `Semaforo`                         | `semaforo`                                     | Enum legacy (`verde/amarillo/rojo` o NULL) → SURP 2.0 (`no_determinado/verde/amarillo/rojo`). NULL → `no_determinado`.      |
+| `Relato`                           | `description`                                  | Trim                                                                                                                        |
+| `PredioId` (vía `IncidentePredio`) | `property_id`                                  | Lookup vía catálogo migrado. Tomar el primer predio activo del N:M legacy.                                                  |
+| `AddUserId`                        | `created_by_id` + `created_by_organization_id` | `created_by_organization_id` = `organization_id` del creador al momento de creación (snapshot)                              |
+| —                                  | `organization_id`                              | **Organización actualmente asignada a la zona del predio** (resuelto al migrar vía `property → zone → current assignment`)  |
+| `Add*`, `Chg*`                     | estándar                                       |                                                                                                                             |
 
-**Estado del incidente** (mapeo):
+**Estado del incidente** — proyección legacy → SURP 2.0:
 
-- Legacy `Pendiente` → `open`
-- Legacy `EnProceso` → `in_progress`
-- Legacy `Cerrado` → `closed`
-- Legacy `Archivado` → `archived`
+El legacy NO tiene state machine, solo `Activo bool`. SURP 2.0 colapsó el
+state machine a 3 valores (`draft/active/voided`) por decisión URP. La
+proyección al ETL es:
 
-**Validaciones:**
+| Legacy `Activo` | SURP 2.0 `state` | `void_reason`                                                       | `voided_at` | `voided_by_user_id`                |
+| --------------- | ---------------- | ------------------------------------------------------------------- | ----------- | ---------------------------------- |
+| `true`          | `'active'`       | NULL                                                                | NULL        | NULL                               |
+| `false`         | `'voided'`       | `'Migrado del legacy: anulado sin razón registrada'` (literal fijo) | `ChgDate`   | usuario sistema `system-migration` |
 
-- Reportar incidentes sin coordenadas (posiblemente carga manual legacy incompleta).
+> **`draft` no aplica al histórico** — es estado nuevo del flujo móvil offline.
+> Ningún incidente legacy nace ahí.
+
+> **No hay `under_review`/`closed`/`escalated`** — esos estados se eliminaron
+> del SURP 2.0 (no existían en legacy y los usuarios URP no los usaban).
+> "Cerrar operativamente" y "escalar a causa" se modelan como FK explícitas
+> (`cases.incident_id`) en lugar de un state.
+
+**Flag `Toma` (toma de terreno)** — mapeo pendiente de definición con la
+URP. Tres opciones evaluadas:
+
+1. Setear `incident_type` a una variante land-occupation
+   (`incident_types.involves_land_occupation = true`) — preferido si la
+   tipificación legacy no captura ya el caso.
+2. Agregar `'land_occupation'` al array `aggravating_factors`.
+3. Campo dedicado `relates_to_land_occupation BOOLEAN` si la URP lo pide
+   para reportería.
+
+Por ahora el ETL preserva el flag con opción 2 (no rompe schema) hasta
+workshop URP.
+
+**Validaciones del ETL:**
+
+- Reportar incidentes sin coordenadas (posiblemente carga manual legacy incompleta) → `location = NULL`, marcar para review.
 - Reportar incidentes cuyo predio no está en ninguna zona con asignación actual — quedan con `organization_id = principal` por default hasta intervención manual.
+- Validar que el `Codigo` legacy parsee como `{NN}-{YYYY}-Z{XX}`. Códigos malformados o inexistentes (carga manual) → marcar para review; no abortar.
 
 ---
 

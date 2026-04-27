@@ -14,6 +14,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth';
 import { BlocksModule } from './modules/blocks';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { NotificationsModule } from './modules/notifications';
 
@@ -32,6 +33,7 @@ import { NotificationsModule } from './modules/notifications';
     AuthModule,
     NotificationsModule.forApi(),
     BlocksModule,
+    CatalogModule,
     IncidentsModule,
     HealthModule,
   ],

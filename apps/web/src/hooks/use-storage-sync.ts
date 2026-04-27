@@ -7,6 +7,9 @@ import { useEffect } from 'react';
  *
  * @param key         localStorage key
  * @param onValue     Called with the stored value on mount and on changes
+ *
+ * Policy: Rule 4 — localStorage initial read + cross-tab StorageEvent
+ * subscription (browser API).
  */
 export function useStorageSync(key: string, onValue: (value: string) => void): void {
   useEffect(() => {

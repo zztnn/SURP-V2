@@ -30,9 +30,9 @@
 
 ## PITFALL-F-004 — `useEffect` para todo
 
-**Qué pasa:** `useEffect(() => { fetch(...) }, [])` en lugar de TanStack Query.
+**Qué pasa:** `useEffect(() => { fetch(...) }, [])`, `useEffect(() => setX(deriveFromY(y)), [y])`, `useEffect` como relay de eventos. Todas son anti-patterns que el policy banea.
 
-**Regla:** Data fetching con TanStack Query siempre. Estado derivado con `useMemo`. Ver `standards/USE-EFFECT-POLICY.md`.
+**Regla:** ESLint bloquea `useEffect`/`useLayoutEffect`/`useInsertionEffect` directos fuera de `src/hooks/**` y `src/providers/**`. Aplicar la jerarquía del policy: derivar inline (Rule 1) → TanStack Query para server state (Rule 2) → event handler (Rule 3) → `useMountEffect` para sync único (Rule 4) → `key` para reset (Rule 5). Ver `standards/USE-EFFECT-POLICY.md`.
 
 ---
 

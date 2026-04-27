@@ -51,21 +51,8 @@
 -- =============================================================================
 
 
--- =============================================================================
--- 0. Extender categoría notification_templates con 'surveillance'
--- =============================================================================
-
-ALTER TABLE notification_templates
-  DROP CONSTRAINT nt_category_ck;
-
-ALTER TABLE notification_templates
-  ADD CONSTRAINT nt_category_ck CHECK (category IN (
-    'account', 'incident', 'complaint', 'case',
-    'hearing', 'deadline', 'task', 'querella', 'appeal', 'resolution',
-    'report', 'export', 'api', 'digest', 'pjud', 'system',
-    'surveillance'
-  ));
-
+-- La categoría 'surveillance' para notification_templates está declarada
+-- centralmente en 13_notifications.sql. No reaplicar el CHECK aquí.
 
 -- =============================================================================
 -- 1. security_contractor_compliance — 1:1 con organizations(security_provider)

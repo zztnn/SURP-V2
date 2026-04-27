@@ -6,6 +6,9 @@ import { useEffect } from 'react';
  *
  * @param name   CSS custom property name (e.g. "--sidebar-offset")
  * @param value  Property value (e.g. "260px")
+ *
+ * Policy: Rule 4 — DOM custom-property sync (the `<html>` element lives
+ * outside the React tree, so the value cannot be derived inline).
  */
 export function useCssCustomProperty(name: string, value: string): void {
   useEffect(() => {

@@ -11,6 +11,10 @@ import { type RefObject, useLayoutEffect } from 'react';
  * El caller setea `pendingCaretRef.current = N` justo antes de llamar
  * `onChange`. Este hook corre con `useLayoutEffect` (sincrónico tras mutar el
  * DOM, antes del paint) para evitar flicker del cursor.
+ *
+ * Policy: Rule 4 — DOM caret position sync via `useLayoutEffect`. This is
+ * the ONLY blessed use of `useLayoutEffect` in the codebase: it must run
+ * post-mutation but pre-paint, so a regular `useEffect` would flicker.
  */
 export function useCaretSync(
   inputRef: RefObject<HTMLInputElement | null>,

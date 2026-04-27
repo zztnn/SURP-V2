@@ -56,22 +56,10 @@ export interface IncidentRepositoryPort {
   ): Promise<{ id: bigint; state: IncidentState; zoneId: bigint } | null>;
 
   /**
-   * Transiciona el state del incidente a 'closed' SOLO si su state
-   * actual está en `fromStates`. Retorna `true` si efectivamente
+   * Transiciona a 'voided' con razón obligatoria. NO libera el
+   * correlativo (invariante del schema). Retorna `true` si efectivamente
    * actualizó (1 row); `false` si el state cambió mientras tanto
    * (concurrencia).
-   */
-  markClosed(
-    incidentId: bigint,
-    fromStates: readonly IncidentState[],
-    at: Date,
-    updatedById: bigint,
-  ): Promise<boolean>;
-
-  /**
-   * Transiciona a 'voided' con razón obligatoria. NO libera el
-   * correlativo (invariante del schema). Mismas semánticas que
-   * `markClosed` para concurrencia.
    */
   markVoided(
     incidentId: bigint,
@@ -86,12 +74,24 @@ export interface ListIncidentsQuery {
   page: number;
   pageSize: number;
   visibleZoneIds: readonly bigint[] | null;
-  state: IncidentState | null;
   zoneId: bigint | null;
+  areaId: bigint | null;
+  propertyId: bigint | null;
   semaforo: Semaforo | null;
   occurredFrom: Date | null;
   occurredTo: Date | null;
-  incidentTypeId: bigint | null;
+  // NULL = sin filtro de tipo. Array vacío también equivale a "sin filtro"
+  // (nadie debería pasar uno vacío en producción — el use case no lo permite).
+  incidentTypeIds: readonly bigint[] | null;
+  // Free text que matchea contra description, correlative_code, zone.name,
+  // area.name, property.name. NULL = sin filtro.
+  freeTextSearch: string | null;
+  // Match en parties.rut / parties.display_name / natural_persons.{given_names,
+  // paternal_surname, maternal_surname} de las personas vinculadas al incidente.
+  personSearch: string | null;
+  // Match en vehicles.license_plate y incident_vehicle_links.observed_plate
+  // de los vehículos vinculados al incidente.
+  vehicleSearch: string | null;
 }
 
 export interface ListIncidentsPage {

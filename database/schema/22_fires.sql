@@ -527,17 +527,5 @@ SELECT fn_audit_attach('fires');
 SELECT fn_audit_attach('fire_documents');
 
 
--- =============================================================================
--- 4. Extender notification_templates.category con 'fires'
--- =============================================================================
-
-ALTER TABLE notification_templates DROP CONSTRAINT nt_category_ck;
-ALTER TABLE notification_templates ADD CONSTRAINT nt_category_ck CHECK (category IN (
-  'account', 'incident', 'complaint', 'case',
-  'hearing', 'deadline', 'task', 'querella', 'appeal', 'resolution',
-  'report', 'export', 'api', 'digest', 'pjud', 'system',
-  'surveillance',
-  'statistics',
-  'rules',
-  'fires'
-));
+-- La categoría 'fires' para notification_templates está declarada
+-- centralmente en 13_notifications.sql. No reaplicar el CHECK aquí.

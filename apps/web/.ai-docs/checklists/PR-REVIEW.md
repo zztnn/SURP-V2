@@ -16,12 +16,22 @@
 ## Patrones y estructura
 
 - 🔴 Entity Page Pattern aplicado (validator, columns, form, pages)
-- 🔴 Sin `useEffect` para data fetching — solo TanStack Query
-- 🔴 Sin `useState` para server data
 - 🔴 `<DataTable>` para toda tabla tabular (no `<table>` HTML crudo)
 - 🔴 `<FloatingActionBar>` en todo form que guarda
 - 🔴 `useFormCloseGuard` en todo form editable
 - 🟡 Query keys centralizadas en `@/lib/query-keys.ts`
+
+### Effects (USE-EFFECT-POLICY.md)
+
+ESLint bloquea `useEffect`/`useLayoutEffect`/`useInsertionEffect` directos fuera de `src/hooks/**` y `src/providers/**`. El revisor debe enforcear las cosas que ESLint NO ve:
+
+- 🔴 **Regla 1 — derive, no sync.** Sin `useState` + `useEffect(() => setX(deriveFromY(y)), [y])`. Si `X` se computa de `Y`, hacerlo inline (`const x = deriveFromY(y)`) o memoizar con `useMemo`.
+- 🔴 **Regla 2 — server state en TanStack Query.** Sin `useEffect` que llame `fetch()` y guarde en `useState`. Sin re-implementación de cache, retry, cancelación, staleness — todo eso ya lo hace `useQuery`.
+- 🔴 **Regla 3 — event handlers, no effects.** Sin "set flag → effect dispara acción real". La acción del usuario va directo en el `onClick`/`onSubmit`/etc.
+- 🔴 **Regla 5 — reset con `key`, no coreografía.** Para que un componente se reinicie cuando cambia un ID/prop, usar `<Comp key={id} />`, no un `useEffect` que reinicie estado local.
+- 🔴 **Hooks custom nuevos.** Si el PR introduce un nuevo hook en `src/hooks/` que usa `useEffect`, el header del archivo debe declarar la **Regla del policy** que implementa (ej. `// Policy: Rule 4 — ResizeObserver subscription`) o citar la **excepción permitida** (debounce, focus post-transición, query-driven state machine, keyboard listener global, DOM attribute sync en provider). Un hook nuevo sin ese tag no se aprueba.
+- 🟡 **`useMountEffect` para external sync único.** Si la lógica es "setup on mount, cleanup on unmount" sin reactividad, debería usar `useMountEffect` en vez de `useEffect(fn, [])`.
+- 🟡 **`useEffectEvent` para callbacks estables.** Hooks que reciben callbacks reactivos del consumidor deberían envolverlos con `useEffectEvent` para evitar exhaustive-deps disables.
 
 ---
 

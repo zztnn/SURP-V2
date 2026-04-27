@@ -8,6 +8,9 @@ import type { RefObject } from 'react';
  *
  * @param ref           Ref to the element to scroll into view
  * @param shouldScroll  Whether scrolling should happen
+ *
+ * Policy: exception — focus/scroll management after state transition (DOM
+ * imperative side-effect, cannot be expressed declaratively in JSX).
  */
 export function useScrollIntoView(ref: RefObject<HTMLElement | null>, shouldScroll: boolean): void {
   useEffect(() => {

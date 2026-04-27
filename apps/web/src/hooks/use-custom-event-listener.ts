@@ -8,6 +8,8 @@ import { useEffect, useEffectEvent } from 'react';
  * @param eventName  Custom event name (e.g. "sidebar-search-navigate")
  * @param handler    Event handler function
  * @param enabled    Whether the listener is active (default: true)
+ *
+ * Policy: Rule 4 — window-level custom event subscription.
  */
 export function useCustomEventListener(
   eventName: string,

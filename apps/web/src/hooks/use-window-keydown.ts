@@ -7,6 +7,8 @@ import { useEffect, useEffectEvent } from 'react';
  *
  * @param handler  Keydown event handler
  * @param enabled  Whether the listener is active (default: true)
+ *
+ * Policy: Rule 4 — global window keyboard listener.
  */
 export function useWindowKeyDown(handler: (e: KeyboardEvent) => void, enabled = true): void {
   const onKeyDown = useEffectEvent(handler);

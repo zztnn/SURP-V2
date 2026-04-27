@@ -12,6 +12,10 @@ import { useEffect, useEffectEvent } from 'react';
  *
  * @param dependency  Value to watch for changes
  * @param callback    Function to run when dependency changes
+ *
+ * Policy: exception — query-driven state machine transition. Reach for this
+ * only when Rule 1 (derive inline) and Rule 5 (`key` prop reset) do not fit;
+ * RHF `form.reset()` after server data arrives is the canonical use case.
  */
 export function useEffectOnChange(dependency: unknown, callback: () => void): void {
   const onChange = useEffectEvent(callback);

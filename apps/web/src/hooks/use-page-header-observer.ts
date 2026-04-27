@@ -8,6 +8,8 @@ import type { RefObject } from 'react';
 /**
  * Registers icon + title in the page header registry and observes
  * the header element's visibility with IntersectionObserver.
+ *
+ * Policy: Rule 4 — IntersectionObserver subscription + external registry sync.
  */
 export function usePageHeaderObserver(
   ref: RefObject<HTMLDivElement | null>,

@@ -49,10 +49,17 @@ CREATE TABLE notification_templates (
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_by_id            BIGINT NULL REFERENCES users(id),
 
+  -- Catálogo cerrado de categorías de notificación. Cuando se agrega un
+  -- módulo nuevo (`statistics`, `rules`, `fires`, `surveillance`, …) que
+  -- emite plantillas, se extiende esta lista — NO se reaplica el CHECK
+  -- desde otro archivo de schema (patrón viejo era acumulativo y frágil:
+  -- si un módulo olvidaba re-listar las categorías anteriores, dejaba el
+  -- CHECK incompleto). Mantener este CHECK como única fuente de verdad.
   CONSTRAINT nt_category_ck CHECK (category IN (
     'account', 'incident', 'complaint', 'case',
     'hearing', 'deadline', 'task', 'querella', 'appeal', 'resolution',
-    'report', 'export', 'api', 'digest', 'pjud', 'system'
+    'report', 'export', 'api', 'digest', 'pjud', 'system',
+    'surveillance', 'statistics', 'rules', 'fires'
   )),
   CONSTRAINT nt_subject_not_empty_ck CHECK (length(trim(subject_template)) > 0),
   CONSTRAINT nt_body_not_empty_ck CHECK (length(trim(body_mjml)) > 0),

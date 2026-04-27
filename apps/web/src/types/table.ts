@@ -9,7 +9,7 @@ declare module '@tanstack/react-table' {
     /** Label displayed in the expanded row for this column */
     label?: string | undefined;
     /**
-     * Alineamiento de columna. Convención canónica:
+     * Column alignment. Gold-standard convention:
      *   - text columns → "left" (default, can be omitted)
      *   - numeric columns → "right"
      *   - boolean / checkbox / small-toggle columns → "center"

@@ -107,18 +107,38 @@ const eslintConfig = [
       'react/jsx-no-target-blank': 'error',
       'react/self-closing-comp': 'error',
 
-      // useEffect directo está prohibido — usar useMountEffect o un hook custom
-      // (ver standards/USE-EFFECT-POLICY del ERP, mismo patrón aquí).
+      // Effects directos están prohibidos en componentes/páginas — usar
+      // useMountEffect o un hook custom de src/hooks/. El override de abajo
+      // habilita las excepciones permitidas en src/hooks/** y src/providers/**.
+      // Ver `apps/web/.ai-docs/standards/USE-EFFECT-POLICY.md`.
       'no-restricted-syntax': [
         'error',
         {
           selector: "CallExpression[callee.name='useEffect']",
           message:
-            'useEffect directo está prohibido. Usar useMountEffect desde @/hooks/use-mount-effect, o crear un hook custom en src/hooks/.',
+            'useEffect directo está prohibido. Usar useMountEffect desde @/hooks/use-mount-effect, o crear un hook custom en src/hooks/. Ver USE-EFFECT-POLICY.md.',
         },
         {
           selector: "CallExpression[callee.object.name='React'][callee.property.name='useEffect']",
-          message: 'React.useEffect directo está prohibido. Usar useMountEffect.',
+          message: 'React.useEffect directo está prohibido. Usar useMountEffect. Ver USE-EFFECT-POLICY.md.',
+        },
+        {
+          selector: "CallExpression[callee.name='useLayoutEffect']",
+          message:
+            'useLayoutEffect directo está prohibido. Solo permitido dentro de src/hooks/** para sync de caret/scroll post-mutación. Ver USE-EFFECT-POLICY.md.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='React'][callee.property.name='useLayoutEffect']",
+          message: 'React.useLayoutEffect directo está prohibido. Ver USE-EFFECT-POLICY.md.',
+        },
+        {
+          selector: "CallExpression[callee.name='useInsertionEffect']",
+          message:
+            'useInsertionEffect está reservado para librerías CSS-in-JS, no para código de aplicación. Ver USE-EFFECT-POLICY.md.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='React'][callee.property.name='useInsertionEffect']",
+          message: 'React.useInsertionEffect está reservado para librerías CSS-in-JS. Ver USE-EFFECT-POLICY.md.',
         },
       ],
       'react-hooks/incompatible-library': 'off',

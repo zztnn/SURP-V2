@@ -59,7 +59,6 @@ DECLARE
     ARRAY['patrimonial_admin', 'incidents.incidents.read'],
     ARRAY['patrimonial_admin', 'incidents.incidents.create'],
     ARRAY['patrimonial_admin', 'incidents.incidents.update'],
-    ARRAY['patrimonial_admin', 'incidents.incidents.close'],
     ARRAY['patrimonial_admin', 'incidents.incidents.void'],
     ARRAY['patrimonial_admin', 'incidents.incidents.set_semaforo'],
     ARRAY['patrimonial_admin', 'incidents.evidence.upload'],

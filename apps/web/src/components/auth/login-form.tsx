@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Shield } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
@@ -26,6 +26,7 @@ export function LoginForm(): ReactElement {
   const router = useRouter();
   const login = useLogin();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -93,13 +94,31 @@ export function LoginForm(): ReactElement {
             <Label htmlFor="password" className="text-slate-200">
               Contraseña
             </Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              className="bg-slate-900/60 text-slate-100 placeholder:text-slate-500"
-              {...register('password')}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                className="bg-slate-900/60 pr-10 text-slate-100 placeholder:text-slate-500"
+                {...register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPassword((v) => !v);
+                }}
+                className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 transition-colors hover:text-slate-200 focus:outline-none focus-visible:text-slate-200"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                aria-pressed={showPassword}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+            </div>
             {errors.password ? (
               <p className="text-xs text-destructive">{errors.password.message}</p>
             ) : null}

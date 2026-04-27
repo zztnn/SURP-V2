@@ -11,13 +11,9 @@ import {
 
 import { RequestContextService } from '../../common';
 import { RequirePermission } from '../../common/auth/decorators';
-import type { IncidentState, Semaforo } from './domain/incident';
+import type { Semaforo } from './domain/incident';
 import { RegisterIncidentDto } from './dto/register-incident.dto';
 import { VoidIncidentDto } from './dto/void-incident.dto';
-import {
-  CloseIncidentUseCase,
-  type CloseIncidentResult,
-} from './use-cases/close-incident.use-case';
 import {
   GetIncidentByExternalIdUseCase,
   type GetIncidentByExternalIdResult,
@@ -32,15 +28,9 @@ import {
 } from './use-cases/register-incident.use-case';
 import { VoidIncidentUseCase, type VoidIncidentResult } from './use-cases/void-incident.use-case';
 
-const VALID_STATES: readonly IncidentState[] = [
-  'draft',
-  'submitted',
-  'under_review',
-  'closed',
-  'escalated',
-  'voided',
-];
 const VALID_SEMAFOROS: readonly Semaforo[] = ['no_determinado', 'verde', 'amarillo', 'rojo'];
+
+const MAX_INCIDENT_TYPE_IDS = 50;
 
 @Controller('incidents')
 export class IncidentsController {
@@ -48,7 +38,6 @@ export class IncidentsController {
     private readonly registerUseCase: RegisterIncidentUseCase,
     private readonly listUseCase: ListIncidentsUseCase,
     private readonly getByIdUseCase: GetIncidentByExternalIdUseCase,
-    private readonly closeUseCase: CloseIncidentUseCase,
     private readonly voidUseCase: VoidIncidentUseCase,
     private readonly contextService: RequestContextService,
   ) {}
@@ -85,25 +74,33 @@ export class IncidentsController {
   async list(
     @Query('page') pageRaw?: string,
     @Query('pageSize') pageSizeRaw?: string,
-    @Query('state') stateRaw?: string,
     @Query('zoneExternalId') zoneRaw?: string,
+    @Query('areaExternalId') areaRaw?: string,
+    @Query('propertyExternalId') propertyRaw?: string,
     @Query('semaforo') semaforoRaw?: string,
     @Query('occurredFrom') occurredFromRaw?: string,
     @Query('occurredTo') occurredToRaw?: string,
-    @Query('incidentTypeExternalId') typeRaw?: string,
+    @Query('incidentTypeExternalIds') typeIdsRaw?: string,
+    @Query('q') freeTextRaw?: string,
+    @Query('personSearch') personSearchRaw?: string,
+    @Query('vehicleSearch') vehicleSearchRaw?: string,
   ): Promise<ListIncidentsResult> {
     const ctx = this.contextService.getContextOrThrow();
     return this.listUseCase.execute(
       {
         page: parsePositiveInt(pageRaw, 'page', 1),
         pageSize: parsePositiveInt(pageSizeRaw, 'pageSize', 25),
-        state: stateRaw !== undefined ? parseState(stateRaw) : null,
-        zoneExternalId: zoneRaw ?? null,
+        zoneExternalId: emptyToNull(zoneRaw),
+        areaExternalId: emptyToNull(areaRaw),
+        propertyExternalId: emptyToNull(propertyRaw),
         semaforo: semaforoRaw !== undefined ? parseSemaforo(semaforoRaw) : null,
         occurredFrom:
           occurredFromRaw !== undefined ? parseDate(occurredFromRaw, 'occurredFrom') : null,
         occurredTo: occurredToRaw !== undefined ? parseDate(occurredToRaw, 'occurredTo') : null,
-        incidentTypeExternalId: typeRaw ?? null,
+        incidentTypeExternalIds: parseExternalIdList(typeIdsRaw, 'incidentTypeExternalIds'),
+        freeTextSearch: emptyToNull(freeTextRaw),
+        personSearch: emptyToNull(personSearchRaw),
+        vehicleSearch: emptyToNull(vehicleSearchRaw),
       },
       ctx,
     );
@@ -116,14 +113,6 @@ export class IncidentsController {
   ): Promise<GetIncidentByExternalIdResult> {
     const ctx = this.contextService.getContextOrThrow();
     return this.getByIdUseCase.execute({ externalId }, ctx);
-  }
-
-  @Post(':externalId/close')
-  @HttpCode(200)
-  @RequirePermission('incidents.incidents.close')
-  async close(@Param('externalId') externalId: string): Promise<CloseIncidentResult> {
-    const ctx = this.contextService.getContextOrThrow();
-    return this.closeUseCase.execute({ externalId }, ctx);
   }
 
   @Post(':externalId/void')
@@ -150,15 +139,27 @@ function parsePositiveInt(raw: string | undefined, field: string, fallback: numb
   return Number(raw);
 }
 
-function parseState(raw: string): IncidentState {
-  if ((VALID_STATES as readonly string[]).includes(raw)) {
-    return raw as IncidentState;
+function emptyToNull(raw: string | undefined): string | null {
+  if (raw === undefined) return null;
+  const trimmed = raw.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function parseExternalIdList(raw: string | undefined, field: string): readonly string[] {
+  if (raw === undefined || raw.trim().length === 0) return [];
+  // Acepta CSV: `?incidentTypeExternalIds=a,b,c`. Trim por elemento.
+  const items = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  if (items.length > MAX_INCIDENT_TYPE_IDS) {
+    throw new BadRequestException({
+      error: 'Bad Request',
+      code: 'INVALID_QUERY_PARAM',
+      message: `${field} excede el máximo de ${String(MAX_INCIDENT_TYPE_IDS)} valores`,
+    });
   }
-  throw new BadRequestException({
-    error: 'Bad Request',
-    code: 'INVALID_QUERY_PARAM',
-    message: `state debe ser uno de: ${VALID_STATES.join(', ')}`,
-  });
+  return items;
 }
 
 function parseSemaforo(raw: string): Semaforo {

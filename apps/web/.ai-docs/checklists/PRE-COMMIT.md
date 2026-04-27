@@ -48,6 +48,14 @@ Si alguno falla: **arreglar antes de commitear**. No omitir con `--no-verify`.
 
 ### Queries
 
-- [ ] Data fetching con TanStack Query (no `useEffect` + fetch)
+- [ ] Data fetching con TanStack Query (no `useEffect` + fetch — Rule 2 del policy)
 - [ ] `surgicalUpdateListCache` en mutaciones (no `invalidateQueries` universal)
 - [ ] Query keys en `@/lib/query-keys.ts`
+
+### Effects (USE-EFFECT-POLICY.md)
+
+- [ ] Sin `useEffect`/`useLayoutEffect` directo en `src/app/**` o `src/components/**` (ESLint lo bloquea)
+- [ ] Estado derivable se computa inline o con `useMemo` (Rule 1 — no estado-espejo)
+- [ ] Acciones del usuario van en handlers, no en effects con flag (Rule 3)
+- [ ] Reset de instancia con `key`, no con effect que reinicia state (Rule 5)
+- [ ] Hook custom nuevo en `src/hooks/` lleva tag `Policy: ...` en su JSDoc

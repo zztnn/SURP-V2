@@ -15,6 +15,11 @@ interface SidebarResponsiveOptions {
  * Patrón portado de IWH (`iwh-web-client/src/hooks/use-sidebar-responsive.ts`)
  * para garantizar transiciones fluidas entre los 3 viewports.
  *
+ * Policy: exception — viewport-driven imperative state coordination.
+ * The viewport breakpoint is an external "query" (media query); the
+ * `autoCollapsedRef` flag tracks whether we're in an auto-vs-manual state
+ * machine, which cannot be expressed inline.
+ *
  * Comportamiento por viewport:
  *
  * - **Mobile** (`isMobile=true`): colapsa `isExpanded` a false y marca

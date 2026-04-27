@@ -141,7 +141,7 @@ export class RegisterIncidentUseCase {
       correlativeYear,
       async (nextNumber) => {
         const code = `${String(nextNumber)}-${String(correlativeYear)}-Z${zone.shortCode}`;
-        const incident = Incident.registerSubmitted({
+        const incident = Incident.registerActive({
           correlativeCode: code,
           correlativeNumber: nextNumber,
           correlativeYear,

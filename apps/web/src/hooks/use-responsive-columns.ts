@@ -1,16 +1,22 @@
+'use client';
+
 import { useEffect } from 'react';
 
 import type { RefObject } from 'react';
 
 /**
- * Observes a container element and computes how many responsive columns
- * should be hidden based on available width. Re-evaluates on resize.
+ * Mide el container del DataTable y reporta `containerWidth` +
+ * `hiddenCount`.
  *
- * @param wrapperRef       Ref to the container element
- * @param responsiveSizes  Array of column widths (narrowest first)
- * @param fixedColumnsWidth  Total width of fixed (always-visible) columns
- * @param setHiddenCount   Setter for hidden column count
- * @param setContainerWidth Setter for measured container width
+ * Usa `setTimeout(0)` en vez de `requestAnimationFrame` para diferir
+ * al próximo macrotask, ejecutándose después del paint del browser.
+ * Más robusto que RAF contra el ciclo mount-unmount-mount de React
+ * Strict Mode (dev) que cancela RAFs antes de disparar.
+ *
+ * El `ResizeObserver` reacciona a cambios posteriores (sidebar
+ * animando, ventana, zoom).
+ *
+ * Policy: Rule 4 — ResizeObserver subscription + measure-once mount sync.
  */
 export function useResponsiveColumns(
   wrapperRef: RefObject<HTMLElement | null>,
@@ -21,30 +27,26 @@ export function useResponsiveColumns(
 ): void {
   useEffect(() => {
     const el = wrapperRef.current;
-    if (!el || responsiveSizes.length === 0) {
+    if (!el) {
       return;
     }
 
-    const container = el;
-    function recalculate(): void {
-      const available = container.clientWidth;
-      setContainerWidth(available);
-      if (available === 0) {
-        return;
-      }
-      // Check if all columns fit WITHOUT expand column (expand only shows when hiding)
-      // Add padding buffer per column: cell padding (24px) + sort header button (~28px)
-      const COL_BUFFER = 52;
-      const allResponsiveTotal = responsiveSizes.reduce((s, v) => s + v + COL_BUFFER, 0);
-      if (fixedColumnsWidth - 36 + allResponsiveTotal <= available) {
+    function applyMeasure(width: number): void {
+      setContainerWidth(width);
+      if (responsiveSizes.length === 0 || width === 0) {
         setHiddenCount(0);
         return;
       }
-      // Need to hide — expand column will show, so include its 36px
+      const COL_BUFFER = 52;
+      const allResponsiveTotal = responsiveSizes.reduce((s, v) => s + v + COL_BUFFER, 0);
+      if (fixedColumnsWidth - 36 + allResponsiveTotal <= width) {
+        setHiddenCount(0);
+        return;
+      }
       let used = fixedColumnsWidth;
       let kept = 0;
       for (const size of responsiveSizes) {
-        if (used + size + COL_BUFFER <= available) {
+        if (used + size + COL_BUFFER <= width) {
           used += size + COL_BUFFER;
           kept++;
         } else {
@@ -54,10 +56,24 @@ export function useResponsiveColumns(
       setHiddenCount(responsiveSizes.length - kept);
     }
 
-    recalculate();
-    const observer = new ResizeObserver(recalculate);
+    function measureNow(): void {
+      const current = wrapperRef.current;
+      if (!current) {
+        return;
+      }
+      applyMeasure(current.getBoundingClientRect().width);
+    }
+
+    // Initial measure: setTimeout(0) defers to next macrotask, after
+    // browser layout/paint. Survives Strict Mode mount-unmount-mount.
+    const timerId = setTimeout(measureNow, 0);
+
+    // Observer for resizes (sidebar animation, window, zoom).
+    const observer = new ResizeObserver(measureNow);
     observer.observe(el);
+
     return () => {
+      clearTimeout(timerId);
       observer.disconnect();
     };
   }, [wrapperRef, responsiveSizes, fixedColumnsWidth, setHiddenCount, setContainerWidth]);
