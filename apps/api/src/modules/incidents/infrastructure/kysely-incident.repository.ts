@@ -324,6 +324,76 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
       },
     };
   }
+
+  async findStateByExternalId(
+    externalId: string,
+    visibleZoneIds: readonly bigint[] | null,
+  ): Promise<{ id: bigint; state: IncidentState; zoneId: bigint } | null> {
+    let q = this.db
+      .selectFrom('incidents')
+      .select(['id', 'state', 'zoneId'])
+      .where('externalId', '=', externalId)
+      .where('deletedAt', 'is', null);
+    if (visibleZoneIds !== null) {
+      if (visibleZoneIds.length === 0) return null;
+      q = q.where(
+        'zoneId',
+        'in',
+        visibleZoneIds.map((id) => id.toString()),
+      );
+    }
+    const row = await q.executeTakeFirst();
+    if (!row) return null;
+    return {
+      id: BigInt(row.id),
+      state: row.state as IncidentState,
+      zoneId: BigInt(row.zoneId),
+    };
+  }
+
+  async markClosed(
+    incidentId: bigint,
+    fromStates: readonly IncidentState[],
+    at: Date,
+    updatedById: bigint,
+  ): Promise<boolean> {
+    const result = await this.db
+      .updateTable('incidents')
+      .set({
+        state: 'closed',
+        stateChangedAt: at,
+        updatedAt: at,
+        updatedById: updatedById.toString(),
+      })
+      .where('id', '=', incidentId.toString())
+      .where('state', 'in', fromStates as IncidentState[])
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows) > 0;
+  }
+
+  async markVoided(
+    incidentId: bigint,
+    fromStates: readonly IncidentState[],
+    voidReason: string,
+    at: Date,
+    voidedByUserId: bigint,
+  ): Promise<boolean> {
+    const result = await this.db
+      .updateTable('incidents')
+      .set({
+        state: 'voided',
+        stateChangedAt: at,
+        voidedAt: at,
+        voidedByUserId: voidedByUserId.toString(),
+        voidReason,
+        updatedAt: at,
+        updatedById: voidedByUserId.toString(),
+      })
+      .where('id', '=', incidentId.toString())
+      .where('state', 'in', fromStates as IncidentState[])
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows) > 0;
+  }
 }
 
 function excerpt(text: string, max: number): string {

@@ -44,6 +44,42 @@ export interface IncidentRepositoryPort {
     externalId: string,
     visibleZoneIds: readonly bigint[] | null,
   ): Promise<IncidentDetail | null>;
+
+  /**
+   * Snapshot mínimo (id, state, zone_id) para que el use case decida
+   * transiciones. Aplica el filtro de visibilidad. Retorna NULL si no
+   * existe o está fuera de las zonas visibles.
+   */
+  findStateByExternalId(
+    externalId: string,
+    visibleZoneIds: readonly bigint[] | null,
+  ): Promise<{ id: bigint; state: IncidentState; zoneId: bigint } | null>;
+
+  /**
+   * Transiciona el state del incidente a 'closed' SOLO si su state
+   * actual está en `fromStates`. Retorna `true` si efectivamente
+   * actualizó (1 row); `false` si el state cambió mientras tanto
+   * (concurrencia).
+   */
+  markClosed(
+    incidentId: bigint,
+    fromStates: readonly IncidentState[],
+    at: Date,
+    updatedById: bigint,
+  ): Promise<boolean>;
+
+  /**
+   * Transiciona a 'voided' con razón obligatoria. NO libera el
+   * correlativo (invariante del schema). Mismas semánticas que
+   * `markClosed` para concurrencia.
+   */
+  markVoided(
+    incidentId: bigint,
+    fromStates: readonly IncidentState[],
+    voidReason: string,
+    at: Date,
+    voidedByUserId: bigint,
+  ): Promise<boolean>;
 }
 
 export interface ListIncidentsQuery {

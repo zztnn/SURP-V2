@@ -13,6 +13,11 @@ import { RequestContextService } from '../../common';
 import { RequirePermission } from '../../common/auth/decorators';
 import type { IncidentState, Semaforo } from './domain/incident';
 import { RegisterIncidentDto } from './dto/register-incident.dto';
+import { VoidIncidentDto } from './dto/void-incident.dto';
+import {
+  CloseIncidentUseCase,
+  type CloseIncidentResult,
+} from './use-cases/close-incident.use-case';
 import {
   GetIncidentByExternalIdUseCase,
   type GetIncidentByExternalIdResult,
@@ -25,6 +30,7 @@ import {
   RegisterIncidentUseCase,
   type RegisterIncidentResult,
 } from './use-cases/register-incident.use-case';
+import { VoidIncidentUseCase, type VoidIncidentResult } from './use-cases/void-incident.use-case';
 
 const VALID_STATES: readonly IncidentState[] = [
   'draft',
@@ -42,6 +48,8 @@ export class IncidentsController {
     private readonly registerUseCase: RegisterIncidentUseCase,
     private readonly listUseCase: ListIncidentsUseCase,
     private readonly getByIdUseCase: GetIncidentByExternalIdUseCase,
+    private readonly closeUseCase: CloseIncidentUseCase,
+    private readonly voidUseCase: VoidIncidentUseCase,
     private readonly contextService: RequestContextService,
   ) {}
 
@@ -108,6 +116,25 @@ export class IncidentsController {
   ): Promise<GetIncidentByExternalIdResult> {
     const ctx = this.contextService.getContextOrThrow();
     return this.getByIdUseCase.execute({ externalId }, ctx);
+  }
+
+  @Post(':externalId/close')
+  @HttpCode(200)
+  @RequirePermission('incidents.incidents.close')
+  async close(@Param('externalId') externalId: string): Promise<CloseIncidentResult> {
+    const ctx = this.contextService.getContextOrThrow();
+    return this.closeUseCase.execute({ externalId }, ctx);
+  }
+
+  @Post(':externalId/void')
+  @HttpCode(200)
+  @RequirePermission('incidents.incidents.void')
+  async void(
+    @Param('externalId') externalId: string,
+    @Body() dto: VoidIncidentDto,
+  ): Promise<VoidIncidentResult> {
+    const ctx = this.contextService.getContextOrThrow();
+    return this.voidUseCase.execute({ externalId, voidReason: dto.voidReason }, ctx);
   }
 }
 
