@@ -25,6 +25,7 @@ const CTX: RequestContext = {
   requestId: 'req-1',
   userId: 100n,
   organizationId: 1n,
+  organizationType: 'principal',
   ip: '10.0.0.1',
   userAgent: 'jest',
   source: 'http',
@@ -107,6 +108,7 @@ function freshMocks(): Mocks {
       findPropertyContaining: jest.fn().mockResolvedValue(PROPERTY),
       findAreaContaining: jest.fn().mockResolvedValue(AREA),
       findCommuneContaining: jest.fn().mockResolvedValue(COMMUNE),
+      findVisibleZoneIdsForOrganization: jest.fn().mockResolvedValue([]),
     },
     incidents: {
       withSequenceLock: jest
@@ -246,7 +248,12 @@ describe('RegisterIncidentUseCase', () => {
   it('rechaza usuario anónimo (defense in depth aunque el guard ya filtre)', async () => {
     const mocks = freshMocks();
     const uc = await build(mocks);
-    const anonCtx: RequestContext = { ...CTX, userId: null, organizationId: null };
+    const anonCtx: RequestContext = {
+      ...CTX,
+      userId: null,
+      organizationId: null,
+      organizationType: null,
+    };
     await expect(uc.execute(baseInput(), anonCtx)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 

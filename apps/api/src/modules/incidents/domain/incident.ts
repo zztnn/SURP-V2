@@ -56,6 +56,9 @@ export interface IncidentSnapshot {
   gpsAccuracyMeters: number | null;
   description: string;
   semaforo: Semaforo;
+  /** NOT NULL si `semaforo != 'no_determinado'` (constraint del schema). */
+  semaforoSetAt: Date | null;
+  semaforoSetByUserId: bigint | null;
   state: IncidentState;
   timberFate: TimberFate | null;
   aggravatingFactors: readonly string[];
@@ -95,6 +98,8 @@ export class Incident {
     gpsAccuracyMeters: number | null;
     description: string;
     semaforo: Semaforo;
+    semaforoSetAt: Date | null;
+    semaforoSetByUserId: bigint | null;
     timberFate: TimberFate | null;
     aggravatingFactors: readonly string[];
     createdByOrganizationId: bigint;
@@ -121,6 +126,8 @@ export class Incident {
       gpsAccuracyMeters: input.gpsAccuracyMeters,
       description: input.description,
       semaforo: input.semaforo,
+      semaforoSetAt: input.semaforoSetAt,
+      semaforoSetByUserId: input.semaforoSetByUserId,
       state: 'submitted',
       timberFate: input.timberFate,
       aggravatingFactors: input.aggravatingFactors,

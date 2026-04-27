@@ -17,6 +17,7 @@ const CTX: RequestContext = {
   requestId: 'req-1',
   userId: null,
   organizationId: null,
+  organizationType: null,
   ip: '10.0.0.1',
   userAgent: 'jest',
   source: 'http',

@@ -7,6 +7,21 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'SURP 2.0',
   description: 'Sistema de Unidad de Resguardo Patrimonial — Forestal Arauco',
+  applicationName: 'SURP 2.0',
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: 'SURP',
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export const viewport: Viewport = {

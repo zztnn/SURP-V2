@@ -1,4 +1,4 @@
-import type { Incident, IncidentSnapshot } from '../domain/incident';
+import type { Incident, IncidentSnapshot, IncidentState, Semaforo } from '../domain/incident';
 
 export const INCIDENT_REPOSITORY = Symbol('INCIDENT_REPOSITORY');
 
@@ -26,4 +26,85 @@ export interface IncidentRepositoryPort {
     year: number,
     fn: (nextNumber: number) => Promise<T>,
   ): Promise<T>;
+
+  /**
+   * Lista incidentes con filtros + paginación. El use case ya aplicó el
+   * filtro de visibilidad (zonas asignadas para `security_provider`) y
+   * pasa la lista de zoneIds permitidos en `visibleZoneIds`. NULL =
+   * acceso total (caso `principal`).
+   */
+  list(query: ListIncidentsQuery): Promise<ListIncidentsPage>;
+
+  /**
+   * Detalle por external_id con joins. Aplica el mismo filtro de
+   * visibilidad por zonas: si el incidente no está en
+   * `visibleZoneIds`, retorna NULL aunque exista.
+   */
+  findByExternalId(
+    externalId: string,
+    visibleZoneIds: readonly bigint[] | null,
+  ): Promise<IncidentDetail | null>;
+}
+
+export interface ListIncidentsQuery {
+  page: number;
+  pageSize: number;
+  visibleZoneIds: readonly bigint[] | null;
+  state: IncidentState | null;
+  zoneId: bigint | null;
+  semaforo: Semaforo | null;
+  occurredFrom: Date | null;
+  occurredTo: Date | null;
+  incidentTypeId: bigint | null;
+}
+
+export interface ListIncidentsPage {
+  items: readonly IncidentListItem[];
+  total: number;
+}
+
+export interface IncidentListItem {
+  externalId: string;
+  correlativeCode: string | null;
+  occurredAt: Date;
+  state: IncidentState;
+  semaforo: Semaforo;
+  incidentTypeCode: string;
+  incidentTypeName: string;
+  zoneShortCode: string;
+  zoneName: string;
+  areaName: string | null;
+  propertyName: string | null;
+  communeName: string | null;
+  capturedByUserDisplayName: string;
+  descriptionExcerpt: string;
+  location: { lat: number; lng: number };
+}
+
+export interface IncidentDetail {
+  externalId: string;
+  correlativeCode: string | null;
+  state: IncidentState;
+  semaforo: Semaforo;
+  occurredAt: Date;
+  detectedAt: Date | null;
+  reportedAt: Date;
+  submittedAt: Date | null;
+  description: string;
+  location: { lat: number; lng: number };
+  locationSource: string;
+  gpsAccuracyMeters: number | null;
+  aggravatingFactors: readonly string[];
+  timberFate: string | null;
+  zone: { externalId: string; shortCode: string; name: string };
+  area: { externalId: string; name: string } | null;
+  property: { externalId: string; name: string } | null;
+  commune: { externalId: string; name: string } | null;
+  incidentType: { externalId: string; code: string; name: string };
+  capturedByUser: { externalId: string; displayName: string };
+  createdByOrganization: {
+    externalId: string;
+    name: string;
+    type: 'principal' | 'security_provider' | 'api_consumer';
+  };
 }

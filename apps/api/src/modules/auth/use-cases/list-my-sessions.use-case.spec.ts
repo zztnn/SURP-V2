@@ -46,6 +46,7 @@ describe('ListMySessionsUseCase', () => {
     requestId: 'r',
     userId: 1n,
     organizationId: 10n,
+    organizationType: 'principal',
     ip: null,
     userAgent: null,
     source: 'http',

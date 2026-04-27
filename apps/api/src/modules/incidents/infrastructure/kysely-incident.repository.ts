@@ -3,8 +3,20 @@ import { sql, type Kysely, type Transaction } from 'kysely';
 
 import { DATABASE } from '../../../database/database.token';
 import type { DB } from '../../../database/generated/database.types';
-import { Incident, type IncidentSnapshot, type IncidentState } from '../domain/incident';
-import type { IncidentRepositoryPort } from '../ports/incident.repository.port';
+import {
+  Incident,
+  type IncidentSnapshot,
+  type IncidentState,
+  type Semaforo,
+} from '../domain/incident';
+import type {
+  IncidentDetail,
+  IncidentRepositoryPort,
+  ListIncidentsPage,
+  ListIncidentsQuery,
+} from '../ports/incident.repository.port';
+
+const DESCRIPTION_EXCERPT_CHARS = 200;
 
 @Injectable()
 export class KyselyIncidentRepository implements IncidentRepositoryPort {
@@ -83,6 +95,9 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
         gpsAccuracyMeters: s.gpsAccuracyMeters !== null ? s.gpsAccuracyMeters.toString() : null,
         description: s.description,
         semaforo: s.semaforo,
+        semaforoSetAt: s.semaforoSetAt,
+        semaforoSetByUserId:
+          s.semaforoSetByUserId !== null ? s.semaforoSetByUserId.toString() : null,
         state: s.state,
         timberFate: s.timberFate,
         aggravatingFactors: JSON.stringify(s.aggravatingFactors),
@@ -119,4 +134,206 @@ export class KyselyIncidentRepository implements IncidentRepositoryPort {
       timberFate: s.timberFate,
     };
   }
+
+  async list(query: ListIncidentsQuery): Promise<ListIncidentsPage> {
+    let q = this.db
+      .selectFrom('incidents as i')
+      .innerJoin('zones as z', 'z.id', 'i.zoneId')
+      .innerJoin('incidentTypes as it', 'it.id', 'i.incidentTypeId')
+      .innerJoin('users as u', 'u.id', 'i.capturedByUserId')
+      .leftJoin('areas as a', 'a.id', 'i.areaId')
+      .leftJoin('properties as p', 'p.id', 'i.propertyId')
+      .leftJoin('communes as c', 'c.id', 'i.communeId')
+      .where('i.deletedAt', 'is', null);
+
+    if (query.visibleZoneIds !== null) {
+      if (query.visibleZoneIds.length === 0) {
+        return { items: [], total: 0 };
+      }
+      q = q.where(
+        'i.zoneId',
+        'in',
+        query.visibleZoneIds.map((id) => id.toString()),
+      );
+    }
+    if (query.state !== null) q = q.where('i.state', '=', query.state);
+    if (query.zoneId !== null) q = q.where('i.zoneId', '=', query.zoneId.toString());
+    if (query.semaforo !== null) q = q.where('i.semaforo', '=', query.semaforo);
+    if (query.occurredFrom !== null) q = q.where('i.occurredAt', '>=', query.occurredFrom);
+    if (query.occurredTo !== null) q = q.where('i.occurredAt', '<=', query.occurredTo);
+    if (query.incidentTypeId !== null) {
+      q = q.where('i.incidentTypeId', '=', query.incidentTypeId.toString());
+    }
+
+    const totalRow = await q.select((eb) => eb.fn.countAll<string>().as('cnt')).executeTakeFirst();
+    const total = totalRow ? Number(totalRow.cnt) : 0;
+
+    const rows = await q
+      .select([
+        'i.externalId as externalId',
+        'i.correlativeCode as correlativeCode',
+        'i.occurredAt as occurredAt',
+        'i.state as state',
+        'i.semaforo as semaforo',
+        'i.description as description',
+        sql<number>`ST_X(i.location)`.as('lng'),
+        sql<number>`ST_Y(i.location)`.as('lat'),
+        'it.code as itCode',
+        'it.name as itName',
+        'z.shortCode as zoneShortCode',
+        'z.name as zoneName',
+        'a.name as areaName',
+        'p.name as propertyName',
+        'c.name as communeName',
+        'u.displayName as userDisplayName',
+      ])
+      .orderBy('i.occurredAt', 'desc')
+      .orderBy('i.id', 'desc')
+      .limit(query.pageSize)
+      .offset((query.page - 1) * query.pageSize)
+      .execute();
+
+    return {
+      items: rows.map((r) => ({
+        externalId: r.externalId,
+        correlativeCode: r.correlativeCode,
+        occurredAt: new Date(r.occurredAt),
+        state: r.state as IncidentState,
+        semaforo: r.semaforo as Semaforo,
+        incidentTypeCode: r.itCode,
+        incidentTypeName: r.itName,
+        zoneShortCode: r.zoneShortCode,
+        zoneName: r.zoneName,
+        areaName: r.areaName,
+        propertyName: r.propertyName,
+        communeName: r.communeName,
+        capturedByUserDisplayName: r.userDisplayName,
+        descriptionExcerpt: excerpt(r.description, DESCRIPTION_EXCERPT_CHARS),
+        location: { lat: r.lat, lng: r.lng },
+      })),
+      total,
+    };
+  }
+
+  async findByExternalId(
+    externalId: string,
+    visibleZoneIds: readonly bigint[] | null,
+  ): Promise<IncidentDetail | null> {
+    let q = this.db
+      .selectFrom('incidents as i')
+      .innerJoin('zones as z', 'z.id', 'i.zoneId')
+      .innerJoin('incidentTypes as it', 'it.id', 'i.incidentTypeId')
+      .innerJoin('users as u', 'u.id', 'i.capturedByUserId')
+      .innerJoin('organizations as o', 'o.id', 'i.createdByOrganizationId')
+      .leftJoin('areas as a', 'a.id', 'i.areaId')
+      .leftJoin('properties as p', 'p.id', 'i.propertyId')
+      .leftJoin('communes as c', 'c.id', 'i.communeId')
+      .where('i.externalId', '=', externalId)
+      .where('i.deletedAt', 'is', null);
+
+    if (visibleZoneIds !== null) {
+      if (visibleZoneIds.length === 0) {
+        return null;
+      }
+      q = q.where(
+        'i.zoneId',
+        'in',
+        visibleZoneIds.map((id) => id.toString()),
+      );
+    }
+
+    const row = await q
+      .select([
+        'i.externalId as externalId',
+        'i.correlativeCode as correlativeCode',
+        'i.state as state',
+        'i.semaforo as semaforo',
+        'i.occurredAt as occurredAt',
+        'i.detectedAt as detectedAt',
+        'i.reportedAt as reportedAt',
+        'i.submittedAt as submittedAt',
+        'i.description as description',
+        'i.locationSource as locationSource',
+        'i.gpsAccuracyMeters as gpsAccuracyMeters',
+        'i.aggravatingFactors as aggravatingFactors',
+        'i.timberFate as timberFate',
+        sql<number>`ST_X(i.location)`.as('lng'),
+        sql<number>`ST_Y(i.location)`.as('lat'),
+        'z.externalId as zoneExternalId',
+        'z.shortCode as zoneShortCode',
+        'z.name as zoneName',
+        'a.externalId as areaExternalId',
+        'a.name as areaName',
+        'p.externalId as propertyExternalId',
+        'p.name as propertyName',
+        'c.externalId as communeExternalId',
+        'c.name as communeName',
+        'it.externalId as itExternalId',
+        'it.code as itCode',
+        'it.name as itName',
+        'u.externalId as userExternalId',
+        'u.displayName as userDisplayName',
+        'o.externalId as orgExternalId',
+        'o.name as orgName',
+        'o.type as orgType',
+      ])
+      .executeTakeFirst();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      externalId: row.externalId,
+      correlativeCode: row.correlativeCode,
+      state: row.state as IncidentState,
+      semaforo: row.semaforo as Semaforo,
+      occurredAt: new Date(row.occurredAt),
+      detectedAt: row.detectedAt !== null ? new Date(row.detectedAt) : null,
+      reportedAt: new Date(row.reportedAt),
+      submittedAt: row.submittedAt !== null ? new Date(row.submittedAt) : null,
+      description: row.description,
+      location: { lat: row.lat, lng: row.lng },
+      locationSource: row.locationSource,
+      gpsAccuracyMeters: row.gpsAccuracyMeters !== null ? Number(row.gpsAccuracyMeters) : null,
+      aggravatingFactors: parseAggravatingFactors(row.aggravatingFactors),
+      timberFate: row.timberFate,
+      zone: {
+        externalId: row.zoneExternalId,
+        shortCode: row.zoneShortCode,
+        name: row.zoneName,
+      },
+      area:
+        row.areaExternalId !== null && row.areaName !== null
+          ? { externalId: row.areaExternalId, name: row.areaName }
+          : null,
+      property:
+        row.propertyExternalId !== null && row.propertyName !== null
+          ? { externalId: row.propertyExternalId, name: row.propertyName }
+          : null,
+      commune:
+        row.communeExternalId !== null && row.communeName !== null
+          ? { externalId: row.communeExternalId, name: row.communeName }
+          : null,
+      incidentType: { externalId: row.itExternalId, code: row.itCode, name: row.itName },
+      capturedByUser: { externalId: row.userExternalId, displayName: row.userDisplayName },
+      createdByOrganization: {
+        externalId: row.orgExternalId,
+        name: row.orgName,
+        type: row.orgType as 'principal' | 'security_provider' | 'api_consumer',
+      },
+    };
+  }
+}
+
+function excerpt(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max - 1).trimEnd() + '…';
+}
+
+function parseAggravatingFactors(raw: unknown): readonly string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((x): x is string => typeof x === 'string');
+  }
+  return [];
 }

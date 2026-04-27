@@ -25,6 +25,7 @@ const CTX_AUTH: RequestContext = {
   requestId: 'r',
   userId: 1n,
   organizationId: 10n,
+  organizationType: 'principal',
   ip: null,
   userAgent: null,
   source: 'http',
@@ -32,7 +33,12 @@ const CTX_AUTH: RequestContext = {
   sessionExternalId: null,
 };
 
-const CTX_ANON: RequestContext = { ...CTX_AUTH, userId: null, organizationId: null };
+const CTX_ANON: RequestContext = {
+  ...CTX_AUTH,
+  userId: null,
+  organizationId: null,
+  organizationType: null,
+};
 
 async function build(found: UserWithPermissions | null): Promise<GetCurrentUserUseCase> {
   const m = await Test.createTestingModule({

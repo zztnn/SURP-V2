@@ -169,6 +169,7 @@ function buildAnonContext(req: Request): RequestContext {
     requestId: req.headers['x-request-id']?.toString() ?? randomUUID(),
     userId: null,
     organizationId: null,
+    organizationType: null,
     ip: extractIp(req),
     userAgent: req.headers['user-agent'] ?? null,
     source: 'http',

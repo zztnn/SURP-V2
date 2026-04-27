@@ -13,6 +13,7 @@ const CTX: RequestContext = {
   requestId: 'r',
   userId: null,
   organizationId: null,
+  organizationType: null,
   ip: null,
   userAgent: 'bullmq',
   source: 'job',

@@ -36,6 +36,14 @@ export interface GeoContextPort {
    * Encuentra la comuna cuyo `geometry` contiene el punto.
    */
   findCommuneContaining(lat: number, lng: number): Promise<ResolvedCommune | null>;
+
+  /**
+   * Devuelve los `zone.id` (BIGINT) cuya asignación a la organización está
+   * vigente (`valid_to IS NULL`) en `organization_zone_assignments`. Lo usa
+   * el filtro de visibilidad para `security_provider`. `principal` no llama
+   * este método (ve todo).
+   */
+  findVisibleZoneIdsForOrganization(organizationId: bigint): Promise<readonly bigint[]>;
 }
 
 export interface ResolvedZone {

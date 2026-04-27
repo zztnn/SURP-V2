@@ -135,6 +135,16 @@ export class KyselyGeoContext implements GeoContextPort {
     };
   }
 
+  async findVisibleZoneIdsForOrganization(organizationId: bigint): Promise<readonly bigint[]> {
+    const rows = await this.db
+      .selectFrom('organizationZoneAssignments')
+      .select(['zoneId'])
+      .where('organizationId', '=', organizationId.toString())
+      .where('validTo', 'is', null)
+      .execute();
+    return rows.map((r) => BigInt(r.zoneId));
+  }
+
   async findCommuneContaining(lat: number, lng: number): Promise<ResolvedCommune | null> {
     const row = await this.db
       .selectFrom('communes')

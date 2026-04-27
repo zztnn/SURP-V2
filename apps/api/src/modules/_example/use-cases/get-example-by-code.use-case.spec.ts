@@ -12,6 +12,7 @@ describe('GetExampleByCodeUseCase', () => {
     requestId: 'req-1',
     userId: 1n,
     organizationId: 1n,
+    organizationType: 'principal',
     ip: null,
     userAgent: null,
     source: 'http',

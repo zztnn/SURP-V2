@@ -46,6 +46,7 @@ export class NotificationDispatchProcessor implements OnModuleInit, OnModuleDest
           requestId: randomUUID(),
           userId: null,
           organizationId: null,
+          organizationType: null,
           ip: null,
           userAgent: 'bullmq-worker',
           source: 'job',

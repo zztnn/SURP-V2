@@ -160,6 +160,12 @@ export class RegisterIncidentUseCase {
           gpsAccuracyMeters: input.gpsAccuracyMeters,
           description: input.description,
           semaforo: input.semaforo ?? 'no_determinado',
+          // El check `incidents_semaforo_consistency_ck` exige set_at + set_by
+          // cuando semaforo != 'no_determinado'. Si el cliente declara un
+          // valor explícito, marcamos al usuario actual como quien lo seteó.
+          semaforoSetAt: input.semaforo && input.semaforo !== 'no_determinado' ? now : null,
+          semaforoSetByUserId:
+            input.semaforo && input.semaforo !== 'no_determinado' ? ctx.userId : null,
           timberFate: input.timberFate,
           aggravatingFactors: input.aggravatingFactors,
           createdByOrganizationId: ctx.organizationId as bigint,

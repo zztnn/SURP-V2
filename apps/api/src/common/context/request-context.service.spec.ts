@@ -8,6 +8,7 @@ describe('RequestContextService', () => {
     requestId: '00000000-0000-0000-0000-000000000001',
     userId: 1n,
     organizationId: 1n,
+    organizationType: 'principal',
     ip: '127.0.0.1',
     userAgent: 'jest',
     source: 'http',

@@ -19,6 +19,14 @@ export interface RequestContext {
   /** Organización a la que pertenece el usuario (scope multi-tenant). NULL si userId es NULL. */
   readonly organizationId: bigint | null;
 
+  /**
+   * Tipo de organización (`principal` | `security_provider` | `api_consumer`).
+   * Lo usan los use cases para aplicar filtros de visibilidad sin tener que
+   * hacer un lookup adicional. NULL si la request es anónima o de un job sin
+   * organización (worker BullMQ).
+   */
+  readonly organizationType: 'principal' | 'security_provider' | 'api_consumer' | null;
+
   /** IP del cliente (X-Forwarded-For si está detrás de proxy). */
   readonly ip: string | null;
 
