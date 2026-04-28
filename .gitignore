@@ -156,3 +156,5 @@ temp/
 uploads/
 evidencias/
 evidence/
+# Storage local del LocalStorageAdapter (apps/api/src/common/storage/)
+storage-data/

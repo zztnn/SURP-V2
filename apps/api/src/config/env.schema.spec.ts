@@ -4,6 +4,7 @@ describe('validateEnv', () => {
   const validBase = {
     DATABASE_URL: 'postgres://user:pass@localhost:5432/surp',
     JWT_SECRET: 'a'.repeat(32),
+    STORAGE_LOCAL_HMAC_SECRET: 'b'.repeat(32),
   };
 
   it('acepta defaults razonables en development', () => {

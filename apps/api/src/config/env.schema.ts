@@ -34,18 +34,37 @@ const baseSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres'),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+
+  // Storage — driver dual conmutable. Ver `apps/api/src/common/storage/`.
+  STORAGE_DRIVER: z.enum(['local', 'azure']).default('local'),
+  STORAGE_LOCAL_ROOT: z.string().default('./storage-data'),
+  STORAGE_LOCAL_HMAC_SECRET: z.string().optional(),
+  STORAGE_LOCAL_PUBLIC_URL: z.string().default('http://localhost:3201'),
 });
 
-const productionRefinement = baseSchema.refine(
-  (env) => {
-    if (env.NODE_ENV !== 'production') return true;
-    return env.JWT_SECRET.length >= 64;
-  },
-  {
-    message: 'En NODE_ENV=production, JWT_SECRET debe tener al menos 64 caracteres',
-    path: ['JWT_SECRET'],
-  },
-);
+const productionRefinement = baseSchema
+  .refine(
+    (env) => {
+      if (env.NODE_ENV !== 'production') return true;
+      return env.JWT_SECRET.length >= 64;
+    },
+    {
+      message: 'En NODE_ENV=production, JWT_SECRET debe tener al menos 64 caracteres',
+      path: ['JWT_SECRET'],
+    },
+  )
+  .refine(
+    (env) => {
+      if (env.STORAGE_DRIVER !== 'local') return true;
+      const s = env.STORAGE_LOCAL_HMAC_SECRET;
+      return typeof s === 'string' && s.length >= 32;
+    },
+    {
+      message:
+        'Cuando STORAGE_DRIVER=local, STORAGE_LOCAL_HMAC_SECRET es requerido y debe tener al menos 32 caracteres. Generar con: openssl rand -hex 32',
+      path: ['STORAGE_LOCAL_HMAC_SECRET'],
+    },
+  );
 
 export type Env = z.infer<typeof baseSchema>;
 

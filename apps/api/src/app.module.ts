@@ -9,6 +9,7 @@ import {
   PermissionGuard,
   PostgresErrorFilter,
 } from './common';
+import { StorageModule } from './common/storage';
 import { appConfig, databaseConfig, jwtConfig, validateEnv } from './config';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
@@ -28,6 +29,7 @@ import { NotificationsModule } from './modules/notifications';
       envFilePath: ['.env.local', '.env'],
     }),
     CommonModule,
+    StorageModule.forRoot(),
     DatabaseModule,
     AuthPermissionsModule,
     AuthModule,

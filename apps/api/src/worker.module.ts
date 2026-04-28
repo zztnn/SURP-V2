@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CommonModule } from './common';
+import { StorageModule } from './common/storage';
 import { appConfig, databaseConfig, jwtConfig, validateEnv } from './config';
 import { DatabaseModule } from './database/database.module';
 import { NotificationsModule } from './modules/notifications';
@@ -26,6 +27,7 @@ import { NotificationsModule } from './modules/notifications';
       envFilePath: ['.env.local', '.env'],
     }),
     CommonModule,
+    StorageModule.forRoot(),
     DatabaseModule,
     NotificationsModule.forWorker(),
   ],
