@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { CommonModule } from '../../common';
 import { DatabaseModule } from '../../database/database.module';
+import { IncidentsExportModule } from './exports/incidents-export.module';
 import { IncidentsController } from './incidents.controller';
 import { KyselyGeoContext } from './infrastructure/kysely-geo-context.adapter';
 import { KyselyIncidentRepository } from './infrastructure/kysely-incident.repository';
@@ -13,7 +14,7 @@ import { RegisterIncidentUseCase } from './use-cases/register-incident.use-case'
 import { VoidIncidentUseCase } from './use-cases/void-incident.use-case';
 
 @Module({
-  imports: [CommonModule, DatabaseModule],
+  imports: [CommonModule, DatabaseModule, IncidentsExportModule.forApi()],
   controllers: [IncidentsController],
   providers: [
     RegisterIncidentUseCase,
