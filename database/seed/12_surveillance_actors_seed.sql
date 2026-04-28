@@ -130,9 +130,14 @@ JOIN permissions p
 WHERE r.name = 'company_admin'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- 2.6 guard (security_provider) — sin acceso a surveillance.
--- (Intencionalmente no se asigna ningún permiso. El guardia no debe ver el
--- registro corporativo ni los hallazgos sobre su empresa.)
+-- 2.6 guard (security_provider)
+-- En esta ola (Ola 1 — actores y compliance corporativo) el guard NO recibe
+-- permisos surveillance: no debe ver registros corporativos ni hallazgos
+-- sobre su empresa. Los permisos OPERACIONALES del guard (turnos,
+-- reportes propios, evidencia) viven en seed/13 (Ola 2). Por eso la
+-- verificación final de este archivo NO chequea `v_guard_perms = 0`:
+-- seed/13 corre después y agrega legítimamente esos permisos
+-- operacionales, lo que rompía la idempotencia de re-corridas.
 
 
 -- -----------------------------------------------------------------------------
@@ -207,7 +212,6 @@ DECLARE
   v_patrimonial_admin_perms INT;
   v_patrimonial_perms INT;
   v_company_admin_perms INT;
-  v_guard_perms INT;
   v_templates INT;
   v_mandatory INT;
 BEGIN
@@ -237,12 +241,6 @@ BEGIN
   JOIN permissions p ON p.id = rp.permission_id
   WHERE r.name = 'company_admin' AND p.module = 'surveillance';
 
-  SELECT count(*) INTO v_guard_perms
-  FROM role_permissions rp
-  JOIN roles r ON r.id = rp.role_id
-  JOIN permissions p ON p.id = rp.permission_id
-  WHERE r.name = 'guard' AND p.module = 'surveillance';
-
   SELECT count(*) INTO v_templates
   FROM notification_templates WHERE category = 'surveillance';
 
@@ -258,9 +256,6 @@ BEGIN
   IF v_patrimonial_admin_perms <> v_total_perms THEN
     RAISE EXCEPTION 'seed/12: patrimonial_admin no tiene todos (%/%)', v_patrimonial_admin_perms, v_total_perms;
   END IF;
-  IF v_guard_perms <> 0 THEN
-    RAISE EXCEPTION 'seed/12: guard NO debe tener permisos surveillance (got %)', v_guard_perms;
-  END IF;
   IF v_templates < 7 THEN
     RAISE EXCEPTION 'seed/12: faltan plantillas surveillance (%)', v_templates;
   END IF;
@@ -268,8 +263,8 @@ BEGIN
     RAISE EXCEPTION 'seed/12: faltan plantillas mandatorias surveillance (%)', v_mandatory;
   END IF;
 
-  RAISE NOTICE 'seed/12 OK — surveillance permisos=% admin=% patrimonial_admin=% patrimonial=% company_admin=% guard=% templates=% mandatory=%',
+  RAISE NOTICE 'seed/12 OK — surveillance permisos=% admin=% patrimonial_admin=% patrimonial=% company_admin=% templates=% mandatory=%',
     v_total_perms, v_admin_perms, v_patrimonial_admin_perms, v_patrimonial_perms,
-    v_company_admin_perms, v_guard_perms, v_templates, v_mandatory;
+    v_company_admin_perms, v_templates, v_mandatory;
 END;
 $$;
