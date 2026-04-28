@@ -12,6 +12,15 @@ import {
 import { RequestContextService } from '../../common';
 import { RequirePermission } from '../../common/auth/decorators';
 import type { Semaforo } from './domain/incident';
+import { CreateIncidentExportDto } from './exports/dto/create-incident-export.dto';
+import {
+  EnqueueIncidentExportUseCase,
+  type EnqueueIncidentExportResult,
+} from './exports/use-cases/enqueue-incident-export.use-case';
+import {
+  GetExportJobStatusUseCase,
+  type GetExportJobStatusResult,
+} from './exports/use-cases/get-export-job-status.use-case';
 import { RegisterIncidentDto } from './dto/register-incident.dto';
 import { VoidIncidentDto } from './dto/void-incident.dto';
 import {
@@ -39,6 +48,8 @@ export class IncidentsController {
     private readonly listUseCase: ListIncidentsUseCase,
     private readonly getByIdUseCase: GetIncidentByExternalIdUseCase,
     private readonly voidUseCase: VoidIncidentUseCase,
+    private readonly enqueueExportUseCase: EnqueueIncidentExportUseCase,
+    private readonly getExportStatusUseCase: GetExportJobStatusUseCase,
     private readonly contextService: RequestContextService,
   ) {}
 
@@ -104,6 +115,35 @@ export class IncidentsController {
       },
       ctx,
     );
+  }
+
+  @Post('exports')
+  @HttpCode(202)
+  @RequirePermission('incidents.incidents.export')
+  async createExport(@Body() dto: CreateIncidentExportDto): Promise<EnqueueIncidentExportResult> {
+    const ctx = this.contextService.getContextOrThrow();
+    const filters: Record<string, unknown> = {};
+    if (dto.zoneExternalId !== undefined) filters['zoneExternalId'] = dto.zoneExternalId;
+    if (dto.areaExternalId !== undefined) filters['areaExternalId'] = dto.areaExternalId;
+    if (dto.propertyExternalId !== undefined) {
+      filters['propertyExternalId'] = dto.propertyExternalId;
+    }
+    if (dto.semaforo !== undefined) filters['semaforo'] = dto.semaforo;
+    if (dto.occurredFrom !== undefined) filters['occurredFrom'] = dto.occurredFrom;
+    if (dto.occurredTo !== undefined) filters['occurredTo'] = dto.occurredTo;
+    if (dto.incidentTypeExternalIds !== undefined && dto.incidentTypeExternalIds.length > 0) {
+      filters['incidentTypeExternalIds'] = dto.incidentTypeExternalIds;
+    }
+    return this.enqueueExportUseCase.execute({ filters, format: dto.format }, ctx);
+  }
+
+  @Get('exports/:externalId')
+  @RequirePermission('incidents.incidents.export')
+  async getExportStatus(
+    @Param('externalId') externalId: string,
+  ): Promise<GetExportJobStatusResult> {
+    const ctx = this.contextService.getContextOrThrow();
+    return this.getExportStatusUseCase.execute({ externalId }, ctx);
   }
 
   @Get(':externalId')

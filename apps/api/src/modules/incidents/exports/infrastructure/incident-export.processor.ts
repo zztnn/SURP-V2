@@ -238,25 +238,23 @@ function buildDataQuery(
 ): IncidentExportDataQuery {
   return {
     visibleZoneIds,
-    zoneId: pickBigInt(filters['zoneId']),
-    areaId: pickBigInt(filters['areaId']),
-    propertyId: pickBigInt(filters['propertyId']),
+    zoneExternalId: pickString(filters['zoneExternalId']),
+    areaExternalId: pickString(filters['areaExternalId']),
+    propertyExternalId: pickString(filters['propertyExternalId']),
     semaforo: pickSemaforo(filters['semaforo']),
     occurredFrom: pickDate(filters['occurredFrom']),
     occurredTo: pickDate(filters['occurredTo']),
-    incidentTypeIds: pickBigIntArray(filters['incidentTypeIds']),
+    incidentTypeExternalIds: pickStringArray(filters['incidentTypeExternalIds']),
   };
 }
 
-function pickBigInt(value: unknown): bigint | null {
-  if (typeof value === 'string' && value.length > 0) return BigInt(value);
-  if (typeof value === 'number') return BigInt(value);
-  return null;
+function pickString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
-function pickBigIntArray(value: unknown): readonly bigint[] | null {
+function pickStringArray(value: unknown): readonly string[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
-  return value.map((v) => pickBigInt(v)).filter((v): v is bigint => v !== null);
+  return value.filter((v): v is string => typeof v === 'string' && v.length > 0);
 }
 
 function pickSemaforo(value: unknown): IncidentExportDataQuery['semaforo'] {

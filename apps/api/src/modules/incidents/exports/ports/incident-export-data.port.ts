@@ -9,13 +9,14 @@ export interface IncidentExportDataQuery {
    */
   visibleZoneIds: readonly bigint[] | null;
 
-  zoneId: bigint | null;
-  areaId: bigint | null;
-  propertyId: bigint | null;
+  /** Filtros del usuario, todos por external_id (lo que envía el frontend). */
+  zoneExternalId: string | null;
+  areaExternalId: string | null;
+  propertyExternalId: string | null;
   semaforo: 'no_determinado' | 'verde' | 'amarillo' | 'rojo' | null;
   occurredFrom: Date | null;
   occurredTo: Date | null;
-  incidentTypeIds: readonly bigint[] | null;
+  incidentTypeExternalIds: readonly string[] | null;
 }
 
 export interface IncidentExportDataPort {

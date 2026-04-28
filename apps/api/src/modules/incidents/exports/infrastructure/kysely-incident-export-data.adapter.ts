@@ -43,20 +43,16 @@ export class KyselyIncidentExportData implements IncidentExportDataPort {
         query.visibleZoneIds.map((id) => id.toString()),
       );
     }
-    if (query.zoneId !== null) q = q.where('i.zoneId', '=', query.zoneId.toString());
-    if (query.areaId !== null) q = q.where('i.areaId', '=', query.areaId.toString());
-    if (query.propertyId !== null) {
-      q = q.where('i.propertyId', '=', query.propertyId.toString());
+    if (query.zoneExternalId !== null) q = q.where('z.externalId', '=', query.zoneExternalId);
+    if (query.areaExternalId !== null) q = q.where('a.externalId', '=', query.areaExternalId);
+    if (query.propertyExternalId !== null) {
+      q = q.where('p.externalId', '=', query.propertyExternalId);
     }
     if (query.semaforo !== null) q = q.where('i.semaforo', '=', query.semaforo);
     if (query.occurredFrom !== null) q = q.where('i.occurredAt', '>=', query.occurredFrom);
     if (query.occurredTo !== null) q = q.where('i.occurredAt', '<=', query.occurredTo);
-    if (query.incidentTypeIds !== null && query.incidentTypeIds.length > 0) {
-      q = q.where(
-        'i.incidentTypeId',
-        'in',
-        query.incidentTypeIds.map((id) => id.toString()),
-      );
+    if (query.incidentTypeExternalIds !== null && query.incidentTypeExternalIds.length > 0) {
+      q = q.where('it.externalId', 'in', query.incidentTypeExternalIds);
     }
 
     const rows = await q
