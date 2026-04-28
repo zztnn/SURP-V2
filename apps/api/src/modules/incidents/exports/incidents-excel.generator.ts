@@ -31,13 +31,13 @@ export interface IncidentExportRow {
 
 export interface IncidentsExcelOptions {
   /** Título del sheet. Default: `"Incidentes"`. */
-  sheetTitle?: string;
+  sheetTitle?: string | undefined;
   /** Resumen humano de los filtros aplicados — va en el header del sheet. */
-  filtersSummary?: string;
+  filtersSummary?: string | undefined;
   /** Fecha que aparece como "Generado el" en el header. Default: `new Date()`. */
-  generatedAt?: Date;
+  generatedAt?: Date | undefined;
   /** Quien pidió el export. Aparece en el header del sheet. */
-  generatedByDisplayName?: string;
+  generatedByDisplayName?: string | undefined;
 }
 
 // Etiquetas en español. **Duplicadas** con `apps/web/src/lib/incidents-format.ts`

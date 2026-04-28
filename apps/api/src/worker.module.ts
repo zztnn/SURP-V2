@@ -4,6 +4,7 @@ import { CommonModule } from './common';
 import { StorageModule } from './common/storage';
 import { appConfig, databaseConfig, jwtConfig, validateEnv } from './config';
 import { DatabaseModule } from './database/database.module';
+import { IncidentsExportModule } from './modules/incidents/exports/incidents-export.module';
 import { NotificationsModule } from './modules/notifications';
 
 /**
@@ -30,6 +31,7 @@ import { NotificationsModule } from './modules/notifications';
     StorageModule.forRoot(),
     DatabaseModule,
     NotificationsModule.forWorker(),
+    IncidentsExportModule.forWorker(),
   ],
 })
 export class WorkerModule {}

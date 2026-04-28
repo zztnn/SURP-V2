@@ -4,9 +4,12 @@ import { ConfigService } from '@nestjs/config';
 import { CommonModule } from '../../../common';
 import { DatabaseModule } from '../../../database/database.module';
 import { BullMQIncidentExportQueue } from './infrastructure/bullmq-incident-export-queue';
+import { IncidentExportProcessor } from './infrastructure/incident-export.processor';
 import { KyselyExportJobRepository } from './infrastructure/kysely-export-job.repository';
+import { KyselyIncidentExportData } from './infrastructure/kysely-incident-export-data.adapter';
 import { REDIS_CONFIG, type RedisConfig } from './infrastructure/redis-config.token';
 import { EXPORT_JOB_REPOSITORY } from './ports/export-job.repository.port';
+import { INCIDENT_EXPORT_DATA } from './ports/incident-export-data.port';
 import { INCIDENT_EXPORT_QUEUE } from './ports/incident-export-queue.port';
 import { EnqueueIncidentExportUseCase } from './use-cases/enqueue-incident-export.use-case';
 import { GetExportJobStatusUseCase } from './use-cases/get-export-job-status.use-case';
@@ -47,13 +50,14 @@ export class IncidentsExportModule {
   }
 
   static forWorker(): DynamicModule {
-    // En 4b se agrega `IncidentExportProcessor` y `IncidentExportDataPort`
-    // adapter. Por ahora solo expone los providers compartidos para que
-    // el worker pueda persistir transiciones de estado cuando esté listo.
     return {
       module: IncidentsExportModule,
       imports: [CommonModule, DatabaseModule],
-      providers: SHARED_PROVIDERS,
+      providers: [
+        ...SHARED_PROVIDERS,
+        { provide: INCIDENT_EXPORT_DATA, useClass: KyselyIncidentExportData },
+        IncidentExportProcessor,
+      ],
       exports: [EXPORT_JOB_REPOSITORY],
     };
   }
