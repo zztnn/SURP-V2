@@ -5,6 +5,7 @@ import { Writable } from 'node:stream';
 
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
+import type { BlobDownloadAuditService } from './blob-download-audit.service';
 import { HmacSigner } from './hmac-signer';
 import { LocalStorageAdapter, type LocalStorageConfig } from './local-storage.adapter';
 import { LocalStorageController } from './local-storage.controller';
@@ -16,6 +17,7 @@ interface Fixture {
   controller: LocalStorageController;
   adapter: LocalStorageAdapter;
   signer: HmacSigner;
+  audit: { recordDownload: jest.Mock };
   cleanup: () => Promise<void>;
 }
 
@@ -27,13 +29,26 @@ async function makeFixture(): Promise<Fixture> {
   };
   const signer = new HmacSigner(SECRET);
   const adapter = new LocalStorageAdapter(cfg, signer);
-  const controller = new LocalStorageController(adapter, signer);
+  const audit = { recordDownload: jest.fn().mockResolvedValue(undefined) };
+  const controller = new LocalStorageController(
+    adapter,
+    signer,
+    audit as unknown as BlobDownloadAuditService,
+  );
   return {
     controller,
     adapter,
     signer,
+    audit,
     cleanup: () => rm(root, { recursive: true, force: true }),
   };
+}
+
+function makeReq(): import('express').Request {
+  return {
+    ip: '127.0.0.1',
+    headers: { 'user-agent': 'jest' },
+  } as unknown as import('express').Request;
 }
 
 function makeRes(): {
@@ -70,7 +85,15 @@ describe('LocalStorageController', () => {
     try {
       const r = makeRes();
       await expect(
-        fix.controller.download(undefined, undefined, undefined, undefined, undefined, r.res),
+        fix.controller.download(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          makeReq(),
+          r.res,
+        ),
       ).rejects.toBeInstanceOf(ForbiddenException);
     } finally {
       await fix.cleanup();
@@ -88,6 +111,7 @@ describe('LocalStorageController', () => {
           String(Math.floor(Date.now() / 1000) + 60),
           'sig',
           undefined,
+          makeReq(),
           r.res,
         ),
       ).rejects.toBeInstanceOf(ForbiddenException);
@@ -107,6 +131,7 @@ describe('LocalStorageController', () => {
           String(Math.floor(Date.now() / 1000) + 60),
           'firma-falsa',
           undefined,
+          makeReq(),
           r.res,
         ),
       ).rejects.toBeInstanceOf(ForbiddenException);
@@ -132,6 +157,7 @@ describe('LocalStorageController', () => {
           String(expSeconds),
           sig,
           undefined,
+          makeReq(),
           r.res,
         ),
       ).rejects.toBeInstanceOf(ForbiddenException);
@@ -151,6 +177,7 @@ describe('LocalStorageController', () => {
           'no-es-numero',
           'sig',
           undefined,
+          makeReq(),
           r.res,
         ),
       ).rejects.toBeInstanceOf(ForbiddenException);
@@ -176,6 +203,7 @@ describe('LocalStorageController', () => {
           String(expSeconds),
           sig,
           undefined,
+          makeReq(),
           r.res,
         ),
       ).rejects.toBeInstanceOf(NotFoundException);
@@ -209,6 +237,7 @@ describe('LocalStorageController', () => {
         String(expSeconds),
         sig,
         'reporte.xlsx',
+        makeReq(),
         r.res,
       );
       // Esperamos a que el pipe termine de bombear el archivo.
@@ -221,6 +250,8 @@ describe('LocalStorageController', () => {
       expect(r.headers['Cache-Control']).toBe('private, no-store');
       const downloaded = Buffer.concat(r.sink);
       expect(downloaded.toString()).toBe('contenido binario');
+      // Audit fue invocado UNA vez (success path).
+      expect(fix.audit.recordDownload).toHaveBeenCalledTimes(1);
     } finally {
       await fix.cleanup();
     }

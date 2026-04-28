@@ -2,7 +2,10 @@ import { resolve } from 'node:path';
 
 import { Module, type DynamicModule, type Provider } from '@nestjs/common';
 
+import { DatabaseModule } from '../../database/database.module';
+
 import { AzureBlobStorageAdapter } from './azure-blob-storage.adapter';
+import { BlobDownloadAuditService } from './blob-download-audit.service';
 import { HmacSigner } from './hmac-signer';
 import {
   LOCAL_STORAGE_CONFIG,
@@ -46,7 +49,8 @@ export class StorageModule {
 
     return {
       module: StorageModule,
-      providers: localProviders,
+      imports: [DatabaseModule],
+      providers: [...localProviders, BlobDownloadAuditService],
       controllers: [LocalStorageController],
       exports: [STORAGE],
       global: true,

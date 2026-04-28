@@ -5,11 +5,13 @@ import {
   Inject,
   NotFoundException,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 import { Public } from '../auth';
+import { BlobDownloadAuditService } from './blob-download-audit.service';
 import { HmacSigner } from './hmac-signer';
 import { BlobNotFoundError, LocalStorageAdapter } from './local-storage.adapter';
 import { isKnownContainer } from './key-naming';
@@ -32,6 +34,7 @@ export class LocalStorageController {
   constructor(
     @Inject(LocalStorageAdapter) private readonly storage: LocalStorageAdapter,
     @Inject(HmacSigner) private readonly signer: HmacSigner,
+    @Inject(BlobDownloadAuditService) private readonly audit: BlobDownloadAuditService,
   ) {}
 
   @Public()
@@ -42,6 +45,7 @@ export class LocalStorageController {
     @Query('exp') expRaw: string | undefined,
     @Query('sig') sigRaw: string | undefined,
     @Query('filename') filenameRaw: string | undefined,
+    @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
     if (
@@ -94,9 +98,28 @@ export class LocalStorageController {
       res.setHeader('Content-Disposition', `attachment; filename="${sanitizeForHeader(filename)}"`);
     }
 
+    // Audit BEFORE pipe — la inserción es rápida y si falla no debe
+    // bloquear (el servicio captura sus propias excepciones internamente).
+    await this.audit.recordDownload({
+      container,
+      key: keyRaw,
+      ip: extractIp(req),
+      userAgent: req.headers['user-agent'] ?? null,
+      requestId:
+        typeof req.headers['x-request-id'] === 'string' ? req.headers['x-request-id'] : null,
+    });
+
     const stream = await this.storage.getStream(container, keyRaw);
     stream.pipe(res);
   }
+}
+
+function extractIp(req: Request): string | null {
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) {
+    return xff.split(',')[0]?.trim() ?? null;
+  }
+  return req.ip ?? null;
 }
 
 /**
