@@ -7,6 +7,7 @@ import {
   Activity,
   AlertTriangle,
   Calendar,
+  Download,
   FileText,
   Gauge,
   Hash,
@@ -19,6 +20,7 @@ import { useMemo, useState, type ReactElement } from 'react';
 
 import { DataListView } from '@/components/data-list-view';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
+import { ExportIncidentsModal } from '@/components/incidents/export-incidents-modal';
 import { IncidentRowActions } from '@/components/incidents/incident-row-actions';
 import {
   VoidIncidentDialog,
@@ -27,6 +29,7 @@ import {
 import { ListToolbar } from '@/components/list-toolbar';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DateRangePicker, type DateRangeValue } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useEffectiveActionMenuStyle } from '@/hooks/use-effective-action-menu-style';
+import { buildExportRequest, useCreateIncidentExport } from '@/hooks/use-incident-export';
 import {
   useCatalogAreas,
   useCatalogIncidentTypes,
@@ -72,6 +76,11 @@ export default function IncidentsPage(): ReactElement {
 
   const actionMenuStyle = useEffectiveActionMenuStyle();
   const [pendingVoid, setPendingVoid] = useState<VoidIncidentTarget | null>(null);
+
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportJobId, setExportJobId] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportMutation = useCreateIncidentExport();
 
   const {
     page,
@@ -249,6 +258,20 @@ export default function IncidentsPage(): ReactElement {
   ]);
 
   const { data, isLoading, isFetching, isError, refetch } = useIncidents(apiFilters);
+
+  const handleExport = (): void => {
+    setExportJobId(null);
+    setExportError(null);
+    setExportModalOpen(true);
+    exportMutation.mutate(buildExportRequest(apiFilters), {
+      onSuccess: ({ externalId }) => {
+        setExportJobId(externalId);
+      },
+      onError: (e) => {
+        setExportError(e.message);
+      },
+    });
+  };
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
@@ -531,7 +554,17 @@ export default function IncidentsPage(): ReactElement {
         icon={AlertTriangle}
         title="Incidentes"
         description="Informes de hechos contra el patrimonio forestal"
-      />
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          disabled={exportMutation.isPending}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Exportar Excel
+        </Button>
+      </PageHeader>
 
       <ListToolbar
         onNew={() => {
@@ -581,6 +614,13 @@ export default function IncidentsPage(): ReactElement {
         onClose={() => {
           setPendingVoid(null);
         }}
+      />
+
+      <ExportIncidentsModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        jobExternalId={exportJobId}
+        createError={exportError}
       />
     </div>
   );
