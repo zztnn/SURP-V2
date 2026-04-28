@@ -206,24 +206,25 @@ pnpm db:seed            # re-cargar seed
 
 ## Documentación clave
 
-| Documento                                          | Uso                                                                                                                                |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **`STACK.md`** (raíz)                              | **Inventario oficial del stack SURP 2.0 — lectura obligatoria antes de introducir cualquier librería nueva**                       |
-| `surp-legacy/`                                     | Fuente de verdad funcional del sistema anterior                                                                                    |
-| `apps/api/.ai-docs/README.md`                      | Índice y orden de lectura del backend                                                                                              |
-| `apps/web/.ai-docs/README.md`                      | Índice y orden de lectura del frontend                                                                                             |
-| `apps/api/.ai-docs/standards/POSTGIS-PATTERNS.md`  | Patrones de BD con PostGIS — lectura obligatoria                                                                                   |
-| `apps/api/.ai-docs/standards/GEO-PATTERNS.md`      | Patrones geoespaciales de dominio + geometrías territoriales (regiones/provincias/comunas) + ingesta de KMZ de zonas/áreas/predios |
-| `apps/api/.ai-docs/standards/AUTHORIZATION.md`     | Modelo multi-organización + RBAC dinámico — lectura obligatoria                                                                    |
-| `apps/api/.ai-docs/standards/SECURITY.md`          | Seguridad: auth, passwords, API keys, auditoría, prohibiciones heredadas del legacy                                                |
-| `apps/api/.ai-docs/standards/DATA-MIGRATION.md`    | Mapeo legacy → SURP 2.0                                                                                                            |
-| `apps/api/.ai-docs/standards/BACKGROUND-JOBS.md`   | BullMQ + worker separado, catálogo de colas, cancelación cooperativa                                                               |
-| `apps/api/.ai-docs/standards/STORAGE.md`           | Storage dual local/Azure, validación MIME, virus scan, containers SURP, SAS                                                        |
-| `apps/api/.ai-docs/standards/NOTIFICATIONS.md`     | Email via Google Workspaces, templates MJML, catálogo de notificaciones                                                            |
-| `apps/web/.ai-docs/standards/MAP-PATTERNS.md`      | Google Maps JS API: Advanced Markers, Data Layer, Places, clustering                                                               |
-| `apps/web/.ai-docs/standards/MOBILE-SCANNER.md`    | Scanner móvil con sesión+QR: foto evidencia, documento, cédula chilena, QR/placa                                                   |
-| `apps/web/.ai-docs/standards/USE-EFFECT-POLICY.md` | Política de `useEffect`: prohibido directo en componentes, 5 reglas que lo reemplazan, `useMountEffect`, excepciones permitidas    |
-| `database/schema/`                                 | DDL fuente de verdad                                                                                                               |
+| Documento                                           | Uso                                                                                                                                |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **`STACK.md`** (raíz)                               | **Inventario oficial del stack SURP 2.0 — lectura obligatoria antes de introducir cualquier librería nueva**                       |
+| `surp-legacy/`                                      | Fuente de verdad funcional del sistema anterior                                                                                    |
+| `apps/api/.ai-docs/README.md`                       | Índice y orden de lectura del backend                                                                                              |
+| `apps/web/.ai-docs/README.md`                       | Índice y orden de lectura del frontend                                                                                             |
+| `apps/api/.ai-docs/standards/POSTGIS-PATTERNS.md`   | Patrones de BD con PostGIS — lectura obligatoria                                                                                   |
+| `apps/api/.ai-docs/standards/GEO-PATTERNS.md`       | Patrones geoespaciales de dominio + geometrías territoriales (regiones/provincias/comunas) + ingesta de KMZ de zonas/áreas/predios |
+| `apps/api/.ai-docs/standards/AUTHORIZATION.md`      | Modelo multi-organización + RBAC dinámico — lectura obligatoria                                                                    |
+| `apps/api/.ai-docs/standards/SECURITY.md`           | Seguridad: auth, passwords, API keys, auditoría, prohibiciones heredadas del legacy                                                |
+| `apps/api/.ai-docs/standards/DATA-MIGRATION.md`     | Mapeo legacy → SURP 2.0                                                                                                            |
+| `apps/api/.ai-docs/standards/BACKGROUND-JOBS.md`    | BullMQ + worker separado, catálogo de colas, cancelación cooperativa                                                               |
+| `apps/api/.ai-docs/standards/STORAGE.md`            | Storage dual local/Azure, validación MIME, virus scan, containers SURP, SAS                                                        |
+| `apps/api/.ai-docs/standards/NOTIFICATIONS.md`      | Email via Google Workspaces, templates MJML, catálogo de notificaciones                                                            |
+| `apps/web/.ai-docs/standards/MAP-PATTERNS.md`       | Google Maps JS API: Advanced Markers, Data Layer, Places, clustering                                                               |
+| `apps/web/.ai-docs/standards/MOBILE-SCANNER.md`     | Scanner móvil con sesión+QR: foto evidencia, documento, cédula chilena, QR/placa                                                   |
+| `apps/web/.ai-docs/standards/USE-EFFECT-POLICY.md`  | Política de `useEffect`: prohibido directo en componentes, 5 reglas que lo reemplazan, `useMountEffect`, excepciones permitidas    |
+| `apps/web/.ai-docs/standards/LIST-VIEW-STANDARD.md` | Estándar mínimo para páginas-lista: `useListPageState`, `<DataListView>`, refetch overlay, chips legibles, etc. Ref: `/incidents`  |
+| `database/schema/`                                  | DDL fuente de verdad                                                                                                               |
 
 ## Skills legales — invocación obligatoria
 
