@@ -16,23 +16,16 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactElement } from 'react';
-import { toast } from 'sonner';
 
 import { DataListView } from '@/components/data-list-view';
 import { DataTableColumnHeader } from '@/components/data-table/data-table-column-header';
 import { IncidentRowActions } from '@/components/incidents/incident-row-actions';
+import {
+  VoidIncidentDialog,
+  type VoidIncidentTarget,
+} from '@/components/incidents/void-incident-dialog';
 import { ListToolbar } from '@/components/list-toolbar';
 import { PageHeader } from '@/components/page-header';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DateRangePicker, type DateRangeValue } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
@@ -46,7 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useEffectiveActionMenuStyle } from '@/hooks/use-effective-action-menu-style';
 import {
   useCatalogAreas,
@@ -54,42 +46,16 @@ import {
   useCatalogProperties,
   useCatalogZones,
   useIncidents,
-  useVoidIncident,
 } from '@/hooks/use-incidents';
 import { useListPageState } from '@/hooks/use-list-page-state';
+import {
+  SEMAFORO_DOT_CLASS,
+  SEMAFORO_LABELS,
+  STATE_BADGE_CLASS,
+  STATE_LABELS,
+} from '@/lib/incidents-format';
 
-import type {
-  IncidentListFilters,
-  IncidentListItem,
-  IncidentSemaforo,
-  IncidentState,
-} from '@/types/incidents';
-
-const STATE_LABELS: Record<IncidentState, string> = {
-  draft: 'Borrador',
-  active: 'Activo',
-  voided: 'Anulado',
-};
-
-const SEMAFORO_LABELS: Record<IncidentSemaforo, string> = {
-  no_determinado: 'Sin determinar',
-  verde: 'Verde',
-  amarillo: 'Amarillo',
-  rojo: 'Rojo',
-};
-
-const STATE_BADGE_CLASS: Record<IncidentState, string> = {
-  draft: 'bg-amber-500 text-white hover:bg-amber-600',
-  active: 'bg-emerald-600 text-white hover:bg-emerald-700',
-  voided: 'bg-zinc-500 text-white hover:bg-zinc-600',
-};
-
-const SEMAFORO_DOT_CLASS: Record<IncidentSemaforo, string> = {
-  no_determinado: 'bg-muted-foreground',
-  verde: 'bg-emerald-500',
-  amarillo: 'bg-amber-500',
-  rojo: 'bg-destructive',
-};
+import type { IncidentListFilters, IncidentListItem, IncidentSemaforo } from '@/types/incidents';
 
 const ALL = '__all__';
 
@@ -105,33 +71,7 @@ export default function IncidentsPage(): ReactElement {
   const router = useRouter();
 
   const actionMenuStyle = useEffectiveActionMenuStyle();
-  const voidMutation = useVoidIncident();
-  const [pendingVoid, setPendingVoid] = useState<IncidentListItem | null>(null);
-  const [voidReasonDraft, setVoidReasonDraft] = useState('');
-
-  const handleConfirmVoid = (): void => {
-    if (!pendingVoid) {
-      return;
-    }
-    if (voidReasonDraft.trim().length < 10) {
-      toast.error('La razón debe tener al menos 10 caracteres');
-      return;
-    }
-    const target = pendingVoid;
-    voidMutation.mutate(
-      { externalId: target.externalId, voidReason: voidReasonDraft.trim() },
-      {
-        onSuccess: () => {
-          toast.success(`Incidente ${target.correlativeCode ?? ''} anulado`);
-          setPendingVoid(null);
-          setVoidReasonDraft('');
-        },
-        onError: (e) => {
-          toast.error(`No se pudo anular: ${e.message}`);
-        },
-      },
-    );
-  };
+  const [pendingVoid, setPendingVoid] = useState<VoidIncidentTarget | null>(null);
 
   const {
     page,
@@ -325,8 +265,7 @@ export default function IncidentsPage(): ReactElement {
           <IncidentRowActions
             incident={row.original}
             onVoid={(i) => {
-              setPendingVoid(i);
-              setVoidReasonDraft('');
+              setPendingVoid({ externalId: i.externalId, correlativeCode: i.correlativeCode });
             }}
           />
         </div>
@@ -579,7 +518,7 @@ export default function IncidentsPage(): ReactElement {
               setFilter('vehicleSearch', v);
             }
           }}
-          placeholder="Contiene: 'Patente'…"
+          placeholder="Contiene: 'PPU'…"
           autoComplete="off"
         />
       </div>
@@ -637,49 +576,12 @@ export default function IncidentsPage(): ReactElement {
         emptyDescription="No hay incidentes que coincidan con los filtros aplicados."
       />
 
-      <AlertDialog
-        open={pendingVoid !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingVoid(null);
-            setVoidReasonDraft('');
-          }
+      <VoidIncidentDialog
+        target={pendingVoid}
+        onClose={() => {
+          setPendingVoid(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Anular incidente</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingVoid
-                ? `Vas a anular el incidente ${pendingVoid.correlativeCode ?? ''}. El correlativo se mantiene ocupado (no se libera el número). La razón quedará registrada en el historial del informe.`
-                : ''}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="void-reason">Razón de anulación (mínimo 10 caracteres)</Label>
-            <Textarea
-              id="void-reason"
-              value={voidReasonDraft}
-              onChange={(e) => {
-                setVoidReasonDraft(e.target.value);
-              }}
-              rows={3}
-              placeholder="Ej: Reporte duplicado, evento ya registrado en informe previo"
-              disabled={voidMutation.isPending}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={voidMutation.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmVoid}
-              disabled={voidMutation.isPending || voidReasonDraft.trim().length < 10}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {voidMutation.isPending ? 'Anulando…' : 'Anular incidente'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
     </div>
   );
 }
