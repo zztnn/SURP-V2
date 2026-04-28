@@ -61,7 +61,7 @@ INSERT INTO permissions (code, module, resource, action, description, is_sensiti
   -- ---------------------------------------------------------------------------
   -- queries (API externa + página web de consulta)
   -- ---------------------------------------------------------------------------
-  ('queries.blocks.check', 'queries', 'blocks', 'check', 'Consultar bloqueo de RUT/patente (auditado por consulta)', true),
+  ('queries.blocks.check', 'queries', 'blocks', 'check', 'Consultar bloqueo de RUT/PPU (auditado por consulta)', true),
 
   -- ---------------------------------------------------------------------------
   -- blocks (gestión de bloqueos por URP)

@@ -78,7 +78,7 @@ export default function BlocksPage(): ReactElement {
       <PageHeader
         icon={ShieldOff}
         title="Bloqueos"
-        description="RUTs y patentes con bloqueo vigente o histórico"
+        description="RUTs y PPUs con bloqueo vigente o histórico"
       />
 
       {isError ? (

@@ -798,7 +798,7 @@ export const PERMISSIONS_CATALOG: readonly PermissionDefinition[] = [
     module: 'queries',
     resource: 'blocks',
     action: 'check',
-    description: 'Consultar bloqueo de RUT/patente (auditado por consulta)',
+    description: 'Consultar bloqueo de RUT/PPU (auditado por consulta)',
     isSensitive: true,
   },
 

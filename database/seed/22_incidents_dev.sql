@@ -67,7 +67,7 @@ SELECT
 FROM (
   VALUES
     -- ============ ZONA ML (Maule) — centro -35.43, -71.66 ============
-    ('1-2026-ZML',  1, 'ML', 'THEFT_TIMBER',     '2026-04-22 06:30:00'::timestamptz, '2026-04-22 07:00:00'::timestamptz, -35.42, -71.65, 'gps', 'Robo de madera en sector norte. Camión con patente parcialmente legible avistado en escape.', 'rojo', 'active', '["chainsaw_used","motorized_vehicle_used"]', NULL),
+    ('1-2026-ZML',  1, 'ML', 'THEFT_TIMBER',     '2026-04-22 06:30:00'::timestamptz, '2026-04-22 07:00:00'::timestamptz, -35.42, -71.65, 'gps', 'Robo de madera en sector norte. Camión con PPU parcialmente legible avistado en escape.', 'rojo', 'active', '["chainsaw_used","motorized_vehicle_used"]', NULL),
     ('2-2026-ZML',  2, 'ML', 'ILLEGAL_LOGGING',  '2026-03-15 11:20:00'::timestamptz, '2026-03-15 14:00:00'::timestamptz, -35.50, -71.70, 'property_centroid', 'Tala ilegal de pino radiata, aproximadamente 8 árboles derribados sin extraer.', 'amarillo', 'active', '["chainsaw_used"]', NULL),
     ('3-2026-ZML',  3, 'ML', 'INTRUSION',        '2026-02-10 18:00:00'::timestamptz, NULL, -35.38, -71.62, 'manual', 'Intrusión sin sustracción reportada por guardia en patrullaje vespertino.', 'verde', 'active', '[]', NULL),
     ('4-2026-ZML',  4, 'ML', 'LAND_OCCUPATION',  '2026-01-08 09:00:00'::timestamptz, '2026-01-08 10:00:00'::timestamptz, -35.55, -71.55, 'gps', 'Toma de predio por aproximadamente 12 personas con instalación de campamento.', 'rojo', 'active', '["multiple_offenders"]', NULL),

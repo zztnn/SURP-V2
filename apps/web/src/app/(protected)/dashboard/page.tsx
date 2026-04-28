@@ -29,7 +29,7 @@ export default function DashboardPage(): ReactElement {
         <Card>
           <CardHeader>
             <CardTitle>Bloqueos vigentes</CardTitle>
-            <CardDescription>RUTs y patentes bloqueados</CardDescription>
+            <CardDescription>RUTs y PPUs bloqueados</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">—</div>
