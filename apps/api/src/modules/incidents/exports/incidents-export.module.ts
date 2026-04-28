@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { CommonModule } from '../../../common';
 import { DatabaseModule } from '../../../database/database.module';
 import { BullMQIncidentExportQueue } from './infrastructure/bullmq-incident-export-queue';
+import { IncidentExportCleanupScheduler } from './infrastructure/incident-export-cleanup.scheduler';
 import { IncidentExportProcessor } from './infrastructure/incident-export.processor';
 import { KyselyExportJobRepository } from './infrastructure/kysely-export-job.repository';
 import { KyselyIncidentExportData } from './infrastructure/kysely-incident-export-data.adapter';
@@ -12,6 +13,7 @@ import { EXPORT_JOB_REPOSITORY } from './ports/export-job.repository.port';
 import { INCIDENT_EXPORT_DATA } from './ports/incident-export-data.port';
 import { INCIDENT_EXPORT_QUEUE } from './ports/incident-export-queue.port';
 import { EnqueueIncidentExportUseCase } from './use-cases/enqueue-incident-export.use-case';
+import { ExpireDoneExportsUseCase } from './use-cases/expire-done-exports.use-case';
 import { GetExportJobStatusUseCase } from './use-cases/get-export-job-status.use-case';
 
 const redisConfigProvider: Provider = {
@@ -57,6 +59,8 @@ export class IncidentsExportModule {
         ...SHARED_PROVIDERS,
         { provide: INCIDENT_EXPORT_DATA, useClass: KyselyIncidentExportData },
         IncidentExportProcessor,
+        ExpireDoneExportsUseCase,
+        IncidentExportCleanupScheduler,
       ],
       exports: [EXPORT_JOB_REPOSITORY],
     };

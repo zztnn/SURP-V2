@@ -78,6 +78,18 @@ export class KyselyExportJobRepository implements ExportJobRepositoryPort {
       .where('externalId', '=', snap.externalId)
       .execute();
   }
+
+  async findExpiredDoneJobs(now: Date, limit: number): Promise<readonly ExportJob[]> {
+    const rows = await this.db
+      .selectFrom('exportJobs')
+      .selectAll()
+      .where('status', '=', 'done')
+      .where('expiresAt', '<', now)
+      .orderBy('expiresAt', 'asc')
+      .limit(limit)
+      .execute();
+    return rows.map((row) => ExportJob.fromSnapshot(rowToSnapshot(row)));
+  }
 }
 
 interface ExportJobRow {

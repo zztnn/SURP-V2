@@ -198,6 +198,19 @@ export class ExportJob {
     this._finishedAt = at;
   }
 
+  /**
+   * Transición disparada por el cron de cleanup. Solo aplica desde `done`.
+   * Limpia la referencia al storage (el blob ya fue borrado) — el row queda
+   * en BD para auditoría histórica con `status='expired'`.
+   */
+  markExpired(): void {
+    if (this._status !== 'done') {
+      throw new ExportJobInvalidTransitionError(this.externalId, this._status, 'expired');
+    }
+    this._status = 'expired';
+    this._storage = null;
+  }
+
   toSnapshot(): ExportJobSnapshot {
     return {
       id: this.id,

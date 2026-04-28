@@ -19,4 +19,10 @@ export interface ExportJobRepositoryPort {
    * markFailed, markCancelled.
    */
   persist(job: ExportJob): Promise<void>;
+
+  /**
+   * Busca jobs `done` cuyo `expires_at` ya pasó. Usado por el cron de
+   * cleanup. `limit` evita procesar miles en un solo barrido.
+   */
+  findExpiredDoneJobs(now: Date, limit: number): Promise<readonly ExportJob[]>;
 }
