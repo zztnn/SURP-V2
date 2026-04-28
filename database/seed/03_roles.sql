@@ -57,6 +57,7 @@ DECLARE
     -- patrimonial_admin
     -- ----------------------------------------------------------------------
     ARRAY['patrimonial_admin', 'incidents.incidents.read'],
+    ARRAY['patrimonial_admin', 'incidents.incidents.export'],
     ARRAY['patrimonial_admin', 'incidents.incidents.create'],
     ARRAY['patrimonial_admin', 'incidents.incidents.update'],
     ARRAY['patrimonial_admin', 'incidents.incidents.void'],
@@ -87,6 +88,7 @@ DECLARE
     -- patrimonial
     -- ----------------------------------------------------------------------
     ARRAY['patrimonial', 'incidents.incidents.read'],
+    ARRAY['patrimonial', 'incidents.incidents.export'],
     ARRAY['patrimonial', 'incidents.incidents.create'],
     ARRAY['patrimonial', 'incidents.incidents.update'],
     ARRAY['patrimonial', 'incidents.evidence.upload'],
@@ -114,6 +116,7 @@ DECLARE
     ARRAY['lawyer_admin', 'cases.milestones.read'],
     ARRAY['lawyer_admin', 'cases.milestones.create'],
     ARRAY['lawyer_admin', 'incidents.incidents.read'],
+    ARRAY['lawyer_admin', 'incidents.incidents.export'],
     ARRAY['lawyer_admin', 'complaints.complaints.read'],
     ARRAY['lawyer_admin', 'persons.persons.read'],
     ARRAY['lawyer_admin', 'persons.imputados.read'],
@@ -128,6 +131,7 @@ DECLARE
     ARRAY['lawyer', 'cases.milestones.read'],
     ARRAY['lawyer', 'cases.milestones.create'],
     ARRAY['lawyer', 'incidents.incidents.read'],
+    ARRAY['lawyer', 'incidents.incidents.export'],
     ARRAY['lawyer', 'complaints.complaints.read'],
     ARRAY['lawyer', 'persons.persons.read'],
     ARRAY['lawyer', 'persons.imputados.read'],
@@ -137,6 +141,7 @@ DECLARE
     ARRAY['field_lawyer', 'cases.milestones.read'],
     ARRAY['field_lawyer', 'cases.milestones.create'],
     ARRAY['field_lawyer', 'incidents.incidents.read'],
+    ARRAY['field_lawyer', 'incidents.incidents.export'],
     ARRAY['field_lawyer', 'complaints.complaints.read'],
     ARRAY['field_lawyer', 'persons.persons.read'],
     ARRAY['field_lawyer', 'persons.imputados.read'],
@@ -146,6 +151,7 @@ DECLARE
     ARRAY['external_lawyer', 'cases.milestones.read'],
     ARRAY['external_lawyer', 'cases.milestones.create'],
     ARRAY['external_lawyer', 'incidents.incidents.read'],
+    ARRAY['external_lawyer', 'incidents.incidents.export'],
     ARRAY['external_lawyer', 'complaints.complaints.read'],
     ARRAY['external_lawyer', 'persons.persons.read'],
     ARRAY['external_lawyer', 'persons.imputados.read'],
@@ -154,6 +160,7 @@ DECLARE
     -- fires_specialist
     -- ----------------------------------------------------------------------
     ARRAY['fires_specialist', 'incidents.incidents.read'],
+    ARRAY['fires_specialist', 'incidents.incidents.export'],
     ARRAY['fires_specialist', 'incidents.incidents.update'],
     ARRAY['fires_specialist', 'incidents.evidence.upload'],
     ARRAY['fires_specialist', 'incidents.evidence.download'],
@@ -164,6 +171,7 @@ DECLARE
     -- surveillance
     -- ----------------------------------------------------------------------
     ARRAY['surveillance', 'incidents.incidents.read'],
+    ARRAY['surveillance', 'incidents.incidents.export'],
     ARRAY['surveillance', 'incidents.incidents.create'],
     ARRAY['surveillance', 'incidents.evidence.upload'],
     ARRAY['surveillance', 'reports.reports.read'],
@@ -172,6 +180,7 @@ DECLARE
     -- viewer (solo lectura básica)
     -- ----------------------------------------------------------------------
     ARRAY['viewer', 'incidents.incidents.read'],
+    ARRAY['viewer', 'incidents.incidents.export'],
     ARRAY['viewer', 'complaints.complaints.read'],
     ARRAY['viewer', 'persons.persons.read'],
     ARRAY['viewer', 'vehicles.vehicles.read'],
@@ -188,6 +197,7 @@ DECLARE
     -- company_admin (security_provider)
     -- ----------------------------------------------------------------------
     ARRAY['company_admin', 'incidents.incidents.read'],
+    ARRAY['company_admin', 'incidents.incidents.export'],
     ARRAY['company_admin', 'incidents.incidents.create'],
     ARRAY['company_admin', 'incidents.incidents.update'],
     ARRAY['company_admin', 'incidents.evidence.upload'],
@@ -206,6 +216,7 @@ DECLARE
     -- guard
     -- ----------------------------------------------------------------------
     ARRAY['guard', 'incidents.incidents.read'],
+    ARRAY['guard', 'incidents.incidents.export'],
     ARRAY['guard', 'incidents.incidents.create'],
     ARRAY['guard', 'incidents.incidents.update'],
     ARRAY['guard', 'incidents.evidence.upload'],

@@ -21,6 +21,7 @@ INSERT INTO permissions (code, module, resource, action, description, is_sensiti
   ('incidents.incidents.update',       'incidents', 'incidents', 'update',       'Actualizar incidentes (informe URP)', false),
   ('incidents.incidents.void',         'incidents', 'incidents', 'void',         'Anular incidentes (mantiene correlativo)', false),
   ('incidents.incidents.set_semaforo', 'incidents', 'incidents', 'set_semaforo', 'Modificar semáforo URP', false),
+  ('incidents.incidents.export',       'incidents', 'incidents', 'export',       'Exportar listado de incidentes a Excel/PDF (auditado — contiene RUTs y descripciones sensibles)', true),
   ('incidents.evidence.upload',        'incidents', 'evidence',  'upload',       'Subir evidencia', false),
   ('incidents.evidence.download',      'incidents', 'evidence',  'download',     'Descargar evidencia (auditado)', true),
 

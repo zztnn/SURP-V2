@@ -488,6 +488,15 @@ export const PERMISSIONS_CATALOG: readonly PermissionDefinition[] = [
     isSensitive: false,
   },
   {
+    code: 'incidents.incidents.export',
+    module: 'incidents',
+    resource: 'incidents',
+    action: 'export',
+    description:
+      'Exportar listado de incidentes a Excel/PDF (auditado — contiene RUTs y descripciones sensibles)',
+    isSensitive: true,
+  },
+  {
     code: 'incidents.incidents.read',
     module: 'incidents',
     resource: 'incidents',

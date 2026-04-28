@@ -745,6 +745,44 @@ export interface Courts {
   updatedById: Int8 | null;
 }
 
+export interface ExportJobs {
+  createdAt: Generated<Timestamp>;
+  errorMessage: string | null;
+  /**
+   * Timestamp tras el cual el blob se borra (cron diario). Default 7 días desde created_at — set en el use case que crea el job.
+   */
+  expiresAt: Timestamp;
+  externalId: Generated<string>;
+  filename: string | null;
+  fileSizeBytes: Int8 | null;
+  /**
+   * Snapshot de los filtros aplicados al momento de pedir el export. Permite reproducir el dataset exacto + auditoría legal (Ley 21.719) sobre qué datos personales fueron exportados.
+   */
+  filters: Generated<Json>;
+  finishedAt: Timestamp | null;
+  format: string;
+  id: Generated<Int8>;
+  /**
+   * Tipo de export: incidents | cases | persons | vehicles | etc. Cada uno tiene su data provider en el processor del worker.
+   */
+  module: string;
+  progress: Generated<number>;
+  /**
+   * Organización del usuario al momento de la petición. Se conserva para auditoría aunque el usuario después cambie de org.
+   */
+  requestedByOrganizationId: Int8;
+  requestedByUserId: Int8;
+  rowsDone: Generated<number>;
+  startedAt: Timestamp | null;
+  status: Generated<string>;
+  storageContainer: string | null;
+  /**
+   * Path dentro de surp-reports. NULL hasta que el processor sube el archivo. Estructura canónica: incidents/{requesterId}/{yyyy}/{mm}/{uuid}-{filename}.
+   */
+  storageKey: string | null;
+  totalRows: number | null;
+}
+
 export interface FireDocuments {
   capturedAt: Timestamp | null;
   capturedByUserId: Int8 | null;
@@ -2274,6 +2312,7 @@ export interface DB {
   complianceAuditFindings: ComplianceAuditFindings;
   complianceAudits: ComplianceAudits;
   courts: Courts;
+  exportJobs: ExportJobs;
   fireDocuments: FireDocuments;
   fires: Fires;
   geographyColumns: GeographyColumns;
